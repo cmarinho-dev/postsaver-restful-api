@@ -13,8 +13,7 @@ public record UserDto(
         String name,
         String username,
         String email,
-        String password,
-        List<PostDto> posts
+        String password
 ) {
     public UserDto(User model) {
         this(
@@ -22,8 +21,7 @@ public record UserDto(
                 model.getName(),
                 model.getUsername(),
                 model.getEmail(),
-                model.getPassword(),
-                Optional.ofNullable(model.getPosts()).orElse(Collections.emptyList()).stream().map(PostDto::new).collect(toList())
+                model.getPassword()
         );
     }
 
@@ -34,7 +32,6 @@ public record UserDto(
         model.setUsername(this.username);
         model.setEmail(this.email);
         model.setPassword(this.password);
-        model.setPosts(Optional.ofNullable(this.posts).orElse(Collections.emptyList()).stream().map(PostDto::toModel).collect(toList()));
         return model;
     }
 }

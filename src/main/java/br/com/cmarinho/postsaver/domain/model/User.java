@@ -22,9 +22,6 @@ public class User {
     @Column(length = 120, nullable = false)
     private String password;
 
-    @OneToMany(mappedBy = "url", fetch = FetchType.EAGER)
-    private List<Post> posts;
-
     public Long getId() {
         return id;
     }
@@ -65,11 +62,4 @@ public class User {
         this.password = password;
     }
 
-    public List<Post> getPosts() {
-        return posts;
-    }
-
-    public void setPosts(List<Post> posts) {
-        this.posts = posts;
-    }
 }
