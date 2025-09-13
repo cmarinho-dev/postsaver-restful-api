@@ -1,5 +1,8 @@
 ### Configurações Necessárias
 
+
+Utilize a [API com Swagger](https://postsaver.up.railway.app/swagger-ui.html)
+
 > As seguintes váriaveis de ambiente devem ser configuradas na sua IDE:
 
 ``` properties
