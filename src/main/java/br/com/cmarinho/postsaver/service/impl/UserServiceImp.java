@@ -1,63 +1,73 @@
 package br.com.cmarinho.postsaver.service.impl;
 
+import br.com.cmarinho.postsaver.controller.dto.request.UserRequest;
 import br.com.cmarinho.postsaver.domain.model.User;
 import br.com.cmarinho.postsaver.domain.repository.UserRepository;
 import br.com.cmarinho.postsaver.service.UserService;
 import br.com.cmarinho.postsaver.service.exception.BusinessException;
 import br.com.cmarinho.postsaver.service.exception.NotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
 @Service
 public class UserServiceImp implements UserService {
 
     private final UserRepository repository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImp(UserRepository userRepository) {
+    public UserServiceImp(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.repository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<User> findAll() {
         return repository.findAll();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public User findById(Long id) {
-        return this.repository.findById(id).orElseThrow(NotFoundException::new);
+        return repository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User with id %d not found.".formatted(id)));
     }
 
     @Override
-    public User create(User userToCreate) {
-        Optional.ofNullable(userToCreate).orElseThrow(() -> new BusinessException("User to create must not be null."));
-        Optional.ofNullable(userToCreate.getName()).orElseThrow(() -> new BusinessException("User name must not be null."));
-        Optional.ofNullable(userToCreate.getUsername()).orElseThrow(() -> new BusinessException("User username must not be null."));
-        Optional.ofNullable(userToCreate.getPassword()).orElseThrow(() -> new BusinessException("User password must not be null."));
-
-        return this.repository.save(userToCreate);
-    }
-
-    @Override
-    public User update(Long id, User userToUpdate) {
-        Optional.ofNullable(userToUpdate).orElseThrow(() -> new BusinessException("User to update must not be null."));
-        User dbUser = this.findById(id);
-        if (!Objects.equals(dbUser.getId(), userToUpdate.getId())) {
-            throw new BusinessException("Update IDs must be the same.");
+    @Transactional
+    public User create(UserRequest request) {
+        if (repository.existsByUsernameIgnoreCase(request.username())) {
+            throw new BusinessException("Username '%s' is already taken.".formatted(request.username()));
         }
-        dbUser.setName(userToUpdate.getName());
-        dbUser.setEmail(userToUpdate.getEmail());
-        dbUser.setUsername(userToUpdate.getUsername());
-        dbUser.setPassword(userToUpdate.getPassword());
-
-        return this.repository.save(dbUser);
+        User user = new User();
+        user.setName(request.name());
+        user.setUsername(request.username());
+        user.setEmail(request.email());
+        user.setPassword(passwordEncoder.encode(request.password()));
+        return repository.save(user);
     }
 
     @Override
+    @Transactional
+    public User update(Long id, UserRequest request) {
+        User user = findById(id);
+        if (!user.getUsername().equalsIgnoreCase(request.username())
+                && repository.existsByUsernameIgnoreCase(request.username())) {
+            throw new BusinessException("Username '%s' is already taken.".formatted(request.username()));
+        }
+        user.setName(request.name());
+        user.setUsername(request.username());
+        user.setEmail(request.email());
+        user.setPassword(passwordEncoder.encode(request.password()));
+        return repository.save(user);
+    }
+
+    @Override
+    @Transactional
     public void delete(Long id) {
-        User dbUser = this.findById(id);
-        this.repository.delete(dbUser);
+        repository.delete(findById(id));
     }
 }

@@ -1,0 +1,54 @@
+<div class="page-header">
+  <h1>Pastas</h1>
+  <p-button label="Nova Pasta" icon="pi pi-plus" (onClick)="openCreate()" />
+</div>
+
+<p-table [value]="folders()" [loading]="loading()" [rows]="10" [paginator]="folders().length > 10" dataKey="id">
+  <ng-template pTemplate="header">
+    <tr>
+      <th style="width: 3rem"></th>
+      <th>Nome</th>
+      <th>Descrição</th>
+      <th style="width: 8rem">Ações</th>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="body" let-folder>
+    <tr>
+      <td><span class="color-dot" [style.background]="folder.color || '#94a3b8'"></span></td>
+      <td class="name-cell"><i class="pi pi-folder"></i> {{ folder.name }}</td>
+      <td>{{ folder.description }}</td>
+      <td>
+        <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="openEdit(folder)" pTooltip="Editar" />
+        <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="confirmDelete(folder)" pTooltip="Excluir" />
+      </td>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="emptymessage">
+    <tr>
+      <td colspan="4" class="empty-cell">Nenhuma pasta criada ainda.</td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<p-dialog
+  [(visible)]="dialogVisible"
+  [modal]="true"
+  [style]="{ width: '28rem', maxWidth: '95vw' }"
+  [header]="editingId ? 'Editar Pasta' : 'Nova Pasta'"
+>
+  <div class="form">
+    <label>Nome *</label>
+    <input pInputText [(ngModel)]="form.name" maxlength="60" placeholder="Ex.: Receitas" />
+
+    <label>Descrição</label>
+    <input pInputText [(ngModel)]="form.description" maxlength="160" placeholder="Descrição opcional" />
+
+    <label>Cor</label>
+    <p-colorpicker [(ngModel)]="form.color" appendTo="body" />
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dialogVisible = false" />
+    <p-button [label]="editingId ? 'Atualizar' : 'Criar'" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+  </ng-template>
+</p-dialog>

@@ -1,0 +1,171 @@
+<div class="page-header">
+  <h1>Meus Posts</h1>
+  <p-button label="Salvar Post" icon="pi pi-plus" (onClick)="openCreate()" />
+</div>
+
+<div class="filters">
+  <span class="p-input-icon-left search">
+    <input
+      pInputText
+      type="text"
+      placeholder="Buscar por título ou descrição..."
+      [(ngModel)]="q"
+      (keyup.enter)="onFilterChange()"
+    />
+  </span>
+  <p-dropdown
+    [options]="sources"
+    optionLabel="label"
+    optionValue="value"
+    [(ngModel)]="filterSource"
+    placeholder="Rede social"
+    [showClear]="true"
+    (onChange)="onFilterChange()"
+  />
+  <p-dropdown
+    [options]="folders()"
+    optionLabel="name"
+    optionValue="id"
+    [(ngModel)]="filterFolderId"
+    placeholder="Pasta"
+    [showClear]="true"
+    (onChange)="onFilterChange()"
+  />
+  <p-dropdown
+    [options]="tags()"
+    optionLabel="name"
+    optionValue="id"
+    [(ngModel)]="filterTagId"
+    placeholder="Tag"
+    [showClear]="true"
+    (onChange)="onFilterChange()"
+  />
+  <p-togglebutton
+    [(ngModel)]="onlyFavorites"
+    onLabel="Favoritos"
+    offLabel="Favoritos"
+    onIcon="pi pi-star-fill"
+    offIcon="pi pi-star"
+    (onChange)="onFilterChange()"
+  />
+  <p-button icon="pi pi-search" severity="secondary" (onClick)="onFilterChange()" pTooltip="Buscar" />
+</div>
+
+@if (loading()) {
+  <div class="empty-state"><i class="pi pi-spin pi-spinner"></i> Carregando...</div>
+} @else if (posts().length === 0) {
+  <div class="empty-state">
+    <i class="pi pi-inbox"></i>
+    <p>Nenhum post encontrado. Salve seu primeiro post!</p>
+  </div>
+} @else {
+  <div class="post-grid">
+    @for (post of posts(); track post.id) {
+      <div class="post-card">
+        <div class="thumb">
+          @if (post.thumbnailUrl) {
+            <img [src]="post.thumbnailUrl" [alt]="post.title" />
+          } @else {
+            <div class="thumb-placeholder"><i class="pi pi-image"></i></div>
+          }
+          <p-tag class="source-tag" [value]="sourceLabel(post.source)" [severity]="sourceSeverity(post.source)" />
+        </div>
+        <div class="body">
+          <div class="title-row">
+            <a class="title" [href]="post.url" target="_blank" rel="noopener">{{ post.title }}</a>
+            <button
+              class="fav-btn"
+              type="button"
+              (click)="toggleFavorite(post)"
+              [pTooltip]="post.favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'"
+            >
+              <i class="pi" [class.pi-star-fill]="post.favorite" [class.pi-star]="!post.favorite"></i>
+            </button>
+          </div>
+          @if (post.description) {
+            <p class="description">{{ post.description }}</p>
+          }
+          <div class="meta">
+            @if (post.folder) {
+              <span class="folder-chip"><i class="pi pi-folder"></i> {{ post.folder.name }}</span>
+            }
+            @for (tag of post.tags; track tag.id) {
+              <span class="tag-chip">#{{ tag.name }}</span>
+            }
+          </div>
+        </div>
+        <div class="actions">
+          <p-button icon="pi pi-external-link" [text]="true" size="small" (onClick)="openLink(post)" pTooltip="Abrir post" />
+          <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="openEdit(post)" pTooltip="Editar" />
+          <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="confirmDelete(post)" pTooltip="Excluir" />
+        </div>
+      </div>
+    }
+  </div>
+
+  <p-paginator
+    [rows]="pageSize"
+    [totalRecords]="totalRecords()"
+    [first]="page * pageSize"
+    (onPageChange)="onPageChange($event)"
+  />
+}
+
+<p-dialog
+  [(visible)]="dialogVisible"
+  [modal]="true"
+  [style]="{ width: '32rem', maxWidth: '95vw' }"
+  [header]="editingId ? 'Editar Post' : 'Salvar Post'"
+>
+  <div class="form">
+    <label>Título *</label>
+    <input pInputText [(ngModel)]="form.title" maxlength="120" placeholder="Ex.: Receita de bolo de cenoura" />
+
+    <label>URL do post *</label>
+    <input pInputText [(ngModel)]="form.url" maxlength="500" placeholder="https://..." />
+
+    <label>Rede social *</label>
+    <p-dropdown [options]="sources" optionLabel="label" optionValue="value" [(ngModel)]="form.source" appendTo="body" />
+
+    <label>Descrição</label>
+    <textarea pTextarea [(ngModel)]="form.description" rows="3" maxlength="500" placeholder="Notas sobre o post..."></textarea>
+
+    <label>URL da thumbnail</label>
+    <input pInputText [(ngModel)]="form.thumbnailUrl" maxlength="500" placeholder="https://..." />
+
+    <label>Pasta</label>
+    <p-dropdown
+      [options]="folders()"
+      optionLabel="name"
+      optionValue="id"
+      [(ngModel)]="form.folderId"
+      placeholder="Sem pasta"
+      [showClear]="true"
+      appendTo="body"
+    />
+
+    <label>Tags</label>
+    <p-multiselect
+      [options]="tags()"
+      optionLabel="name"
+      optionValue="id"
+      [(ngModel)]="form.tagIds"
+      placeholder="Selecione as tags"
+      display="chip"
+      appendTo="body"
+    />
+
+    <p-togglebutton
+      [(ngModel)]="form.favorite"
+      onLabel="Favorito"
+      offLabel="Marcar como favorito"
+      onIcon="pi pi-star-fill"
+      offIcon="pi pi-star"
+    />
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dialogVisible = false" />
+    <p-button [label]="editingId ? 'Atualizar' : 'Salvar'" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+  </ng-template>
+</p-dialog>

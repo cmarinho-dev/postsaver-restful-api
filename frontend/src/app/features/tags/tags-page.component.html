@@ -1,0 +1,49 @@
+<div class="page-header">
+  <h1>Tags</h1>
+  <p-button label="Nova Tag" icon="pi pi-plus" (onClick)="openCreate()" />
+</div>
+
+<p-table [value]="tags()" [loading]="loading()" [rows]="10" [paginator]="tags().length > 10" dataKey="id">
+  <ng-template pTemplate="header">
+    <tr>
+      <th style="width: 3rem"></th>
+      <th>Nome</th>
+      <th style="width: 8rem">Ações</th>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="body" let-tag>
+    <tr>
+      <td><span class="color-dot" [style.background]="tag.color || '#94a3b8'"></span></td>
+      <td class="name-cell"><i class="pi pi-tag"></i> {{ tag.name }}</td>
+      <td>
+        <p-button icon="pi pi-pencil" [text]="true" size="small" (onClick)="openEdit(tag)" pTooltip="Editar" />
+        <p-button icon="pi pi-trash" [text]="true" size="small" severity="danger" (onClick)="confirmDelete(tag)" pTooltip="Excluir" />
+      </td>
+    </tr>
+  </ng-template>
+  <ng-template pTemplate="emptymessage">
+    <tr>
+      <td colspan="3" class="empty-cell">Nenhuma tag criada ainda.</td>
+    </tr>
+  </ng-template>
+</p-table>
+
+<p-dialog
+  [(visible)]="dialogVisible"
+  [modal]="true"
+  [style]="{ width: '28rem', maxWidth: '95vw' }"
+  [header]="editingId ? 'Editar Tag' : 'Nova Tag'"
+>
+  <div class="form">
+    <label>Nome *</label>
+    <input pInputText [(ngModel)]="form.name" maxlength="40" placeholder="Ex.: receitas" />
+
+    <label>Cor</label>
+    <p-colorpicker [(ngModel)]="form.color" appendTo="body" />
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="dialogVisible = false" />
+    <p-button [label]="editingId ? 'Atualizar' : 'Criar'" icon="pi pi-check" [loading]="saving" (onClick)="save()" />
+  </ng-template>
+</p-dialog>
