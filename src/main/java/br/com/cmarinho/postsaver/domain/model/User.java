@@ -4,7 +4,8 @@ import jakarta.persistence.*;
 
 import java.util.List;
 
-@Entity(name = "tb_user")
+@Entity
+@Table(name = "tb_user")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -16,7 +17,7 @@ public class User {
     @Column(length = 20, nullable = false, unique = true)
     private String username;
 
-    @Column(length = 120, nullable = false)
+    @Column(length = 120, nullable = false, unique = true)
     private String email;
 
     @Column(length = 120, nullable = false)

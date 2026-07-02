@@ -1,47 +1,59 @@
 package br.com.cmarinho.postsaver.domain.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
-import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
-@Entity(name = "tb_post")
+@Entity
+@Table(name = "tb_post")
 public class Post {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 80)
+    @Column(length = 120, nullable = false)
     private String title;
 
-    @Column(nullable = false)
+    @Column(length = 500, nullable = false)
     private String url;
 
-    @Column(length = 128)
+    @Column(length = 500)
     private String description;
 
-    @Column(length = 12)
-    private String source;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    private SocialSource source;
 
-    @Column()
-    @JsonProperty("thumbnail_url")
+    @Column(name = "thumbnail_url", length = 500)
     private String thumbnailUrl;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    private List<String> tags;
+    @Column(name = "is_favorite", nullable = false)
+    private boolean favorite;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    private List<String> collection;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "folder_id")
+    private Folder folder;
 
-    @ColumnDefault("false")
-    @JsonProperty("is_favorite")
-    private boolean isFavorite;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "tb_post_tag",
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags = new HashSet<>();
 
     @CreationTimestamp
-    @JsonProperty("created_at")
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     public Long getId() {
         return id;
@@ -75,11 +87,11 @@ public class Post {
         this.description = description;
     }
 
-    public String getSource() {
+    public SocialSource getSource() {
         return source;
     }
 
-    public void setSource(String source) {
+    public void setSource(SocialSource source) {
         this.source = source;
     }
 
@@ -91,28 +103,28 @@ public class Post {
         this.thumbnailUrl = thumbnailUrl;
     }
 
-    public List<String> getTags() {
-        return tags;
-    }
-
-    public void setTags(List<String> tags) {
-        this.tags = tags;
-    }
-
-    public List<String> getCollection() {
-        return collection;
-    }
-
-    public void setCollection(List<String> collection) {
-        this.collection = collection;
-    }
-
     public boolean isFavorite() {
-        return isFavorite;
+        return favorite;
     }
 
     public void setFavorite(boolean favorite) {
-        isFavorite = favorite;
+        this.favorite = favorite;
+    }
+
+    public Folder getFolder() {
+        return folder;
+    }
+
+    public void setFolder(Folder folder) {
+        this.folder = folder;
+    }
+
+    public Set<Tag> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<Tag> tags) {
+        this.tags = tags;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -121,5 +133,13 @@ public class Post {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }
