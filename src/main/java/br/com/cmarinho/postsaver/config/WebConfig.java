@@ -17,5 +17,17 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins(allowedOrigins)
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*");
+
+        // The Authorization Server endpoints are called directly (XHR) by the SPA
+        // in production, where front and back are different origins; in dev the
+        // Angular proxy makes these same-origin so this mapping is a no-op there.
+        registry.addMapping("/oauth2/**")
+                .allowedOrigins(allowedOrigins)
+                .allowedMethods("GET", "POST", "OPTIONS")
+                .allowedHeaders("*");
+        registry.addMapping("/.well-known/**")
+                .allowedOrigins(allowedOrigins)
+                .allowedMethods("GET", "OPTIONS")
+                .allowedHeaders("*");
     }
 }
