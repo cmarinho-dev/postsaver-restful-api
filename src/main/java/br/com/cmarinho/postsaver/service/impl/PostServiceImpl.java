@@ -7,6 +7,8 @@ import br.com.cmarinho.postsaver.domain.model.Tag;
 import br.com.cmarinho.postsaver.domain.repository.FolderRepository;
 import br.com.cmarinho.postsaver.domain.repository.PostRepository;
 import br.com.cmarinho.postsaver.domain.repository.TagRepository;
+import br.com.cmarinho.postsaver.domain.repository.UserRepository;
+import br.com.cmarinho.postsaver.security.CurrentUserProvider;
 import br.com.cmarinho.postsaver.service.PostService;
 import br.com.cmarinho.postsaver.service.exception.BusinessException;
 import br.com.cmarinho.postsaver.service.exception.NotFoundException;
@@ -27,13 +29,19 @@ public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
     private final FolderRepository folderRepository;
     private final TagRepository tagRepository;
+    private final UserRepository userRepository;
+    private final CurrentUserProvider currentUserProvider;
 
     public PostServiceImpl(PostRepository postRepository,
                            FolderRepository folderRepository,
-                           TagRepository tagRepository) {
+                           TagRepository tagRepository,
+                           UserRepository userRepository,
+                           CurrentUserProvider currentUserProvider) {
         this.postRepository = postRepository;
         this.folderRepository = folderRepository;
         this.tagRepository = tagRepository;
+        this.userRepository = userRepository;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @Override
@@ -41,6 +49,7 @@ public class PostServiceImpl implements PostService {
     public Page<Post> search(String text, SocialSource source, Long folderId, Long tagId,
                              Boolean favorite, Pageable pageable) {
         Specification<Post> spec = Specification.allOf(
+                belongsToUser(currentUserProvider.getUserId()),
                 matchesText(text),
                 hasSource(source),
                 inFolder(folderId),
@@ -53,7 +62,7 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional(readOnly = true)
     public Post findById(Long id) {
-        return postRepository.findById(id)
+        return postRepository.findByIdAndUserId(id, currentUserProvider.getUserId())
                 .orElseThrow(() -> new NotFoundException("Post with id %d not found.".formatted(id)));
     }
 
@@ -61,6 +70,7 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public Post create(PostRequest request) {
         Post post = new Post();
+        post.setUser(userRepository.getReferenceById(currentUserProvider.getUserId()));
         applyRequest(post, request);
         return postRepository.save(post);
     }
@@ -88,6 +98,7 @@ public class PostServiceImpl implements PostService {
     }
 
     private void applyRequest(Post post, PostRequest request) {
+        Long userId = currentUserProvider.getUserId();
         post.setTitle(request.title());
         post.setUrl(request.url());
         post.setDescription(request.description());
@@ -100,7 +111,7 @@ public class PostServiceImpl implements PostService {
         if (request.folderId() == null) {
             post.setFolder(null);
         } else {
-            post.setFolder(folderRepository.findById(request.folderId())
+            post.setFolder(folderRepository.findByIdAndUserId(request.folderId(), userId)
                     .orElseThrow(() -> new BusinessException(
                             "Folder with id %d does not exist.".formatted(request.folderId()))));
         }
@@ -108,7 +119,7 @@ public class PostServiceImpl implements PostService {
         Set<Tag> tags = new HashSet<>();
         if (request.tagIds() != null) {
             for (Long tagId : request.tagIds()) {
-                tags.add(tagRepository.findById(tagId)
+                tags.add(tagRepository.findByIdAndUserId(tagId, userId)
                         .orElseThrow(() -> new BusinessException(
                                 "Tag with id %d does not exist.".formatted(tagId))));
             }

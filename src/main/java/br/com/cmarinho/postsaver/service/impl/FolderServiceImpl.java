@@ -4,6 +4,8 @@ import br.com.cmarinho.postsaver.controller.dto.request.FolderRequest;
 import br.com.cmarinho.postsaver.domain.model.Folder;
 import br.com.cmarinho.postsaver.domain.repository.FolderRepository;
 import br.com.cmarinho.postsaver.domain.repository.PostRepository;
+import br.com.cmarinho.postsaver.domain.repository.UserRepository;
+import br.com.cmarinho.postsaver.security.CurrentUserProvider;
 import br.com.cmarinho.postsaver.service.FolderService;
 import br.com.cmarinho.postsaver.service.exception.BusinessException;
 import br.com.cmarinho.postsaver.service.exception.NotFoundException;
@@ -18,32 +20,39 @@ public class FolderServiceImpl implements FolderService {
 
     private final FolderRepository folderRepository;
     private final PostRepository postRepository;
+    private final UserRepository userRepository;
+    private final CurrentUserProvider currentUserProvider;
 
-    public FolderServiceImpl(FolderRepository folderRepository, PostRepository postRepository) {
+    public FolderServiceImpl(FolderRepository folderRepository, PostRepository postRepository,
+                              UserRepository userRepository, CurrentUserProvider currentUserProvider) {
         this.folderRepository = folderRepository;
         this.postRepository = postRepository;
+        this.userRepository = userRepository;
+        this.currentUserProvider = currentUserProvider;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Folder> findAll() {
-        return folderRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+        return folderRepository.findAllByUserId(currentUserProvider.getUserId(), Sort.by(Sort.Direction.ASC, "name"));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Folder findById(Long id) {
-        return folderRepository.findById(id)
+        return folderRepository.findByIdAndUserId(id, currentUserProvider.getUserId())
                 .orElseThrow(() -> new NotFoundException("Folder with id %d not found.".formatted(id)));
     }
 
     @Override
     @Transactional
     public Folder create(FolderRequest request) {
-        if (folderRepository.existsByNameIgnoreCase(request.name())) {
+        Long userId = currentUserProvider.getUserId();
+        if (folderRepository.existsByNameIgnoreCaseAndUserId(request.name(), userId)) {
             throw new BusinessException("A folder named '%s' already exists.".formatted(request.name()));
         }
         Folder folder = new Folder();
+        folder.setUser(userRepository.getReferenceById(userId));
         applyRequest(folder, request);
         return folderRepository.save(folder);
     }
@@ -53,7 +62,7 @@ public class FolderServiceImpl implements FolderService {
     public Folder update(Long id, FolderRequest request) {
         Folder folder = findById(id);
         if (!folder.getName().equalsIgnoreCase(request.name())
-                && folderRepository.existsByNameIgnoreCase(request.name())) {
+                && folderRepository.existsByNameIgnoreCaseAndUserId(request.name(), currentUserProvider.getUserId())) {
             throw new BusinessException("A folder named '%s' already exists.".formatted(request.name()));
         }
         applyRequest(folder, request);
