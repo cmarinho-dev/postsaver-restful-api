@@ -122,6 +122,9 @@ class _FolderFormScreenState extends ConsumerState<FolderFormScreen> {
       }
 
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_isEditing ? 'Pasta atualizada' : 'Pasta criada com sucesso')),
+      );
       context.pop(true);
     } on ApiError catch (e) {
       if (!mounted) return;

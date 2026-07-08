@@ -125,6 +125,9 @@ class _TagFormScreenState extends ConsumerState<TagFormScreen> {
       }
 
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_isEditing ? 'Tag atualizada' : 'Tag criada com sucesso')),
+      );
       Navigator.of(context).pop(tag);
     } on ApiError catch (e) {
       if (!mounted) return;

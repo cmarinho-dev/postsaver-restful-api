@@ -24,20 +24,24 @@ class _FoldersScreenState extends ConsumerState<FoldersScreen> {
   }
 
   void _onDeleteFolder(Folder folder) {
+    final scaffoldContext = context;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Excluir pasta'),
         content: Text('Tem certeza que deseja excluir a pasta "${folder.name}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancelar'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.of(dialogContext).pop();
               ref.read(foldersProvider.notifier).deleteFolder(folder.id);
+              ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                const SnackBar(content: Text('Pasta excluída')),
+              );
             },
             child: const Text('Excluir', style: TextStyle(color: Colors.red)),
           ),
@@ -112,17 +116,10 @@ class _FoldersScreenState extends ConsumerState<FoldersScreen> {
             Icon(Icons.folder_open, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'Nenhuma pasta encontrada',
+              'Nenhuma pasta. Toque + para criar uma.',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Toque no + para criar uma nova pasta',
-              style: TextStyle(
-                color: Colors.grey[500],
               ),
             ),
           ],

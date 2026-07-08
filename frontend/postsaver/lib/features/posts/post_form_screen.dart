@@ -143,6 +143,9 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
       }
 
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_isEditing ? 'Post atualizado' : 'Post criado com sucesso')),
+      );
       Navigator.of(context).pop(post);
     } on ApiError catch (e) {
       if (!mounted) return;
