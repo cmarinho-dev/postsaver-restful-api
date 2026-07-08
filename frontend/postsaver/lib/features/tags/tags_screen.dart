@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'tags_provider.dart';
 
@@ -55,7 +56,7 @@ class _TagsScreenState extends ConsumerState<TagsScreen> {
       body: _buildContent(tagsState),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          await Navigator.of(context).pushNamed('/tags/new');
+          await context.push('/tags/new');
           ref.read(tagsProvider.notifier).loadTags();
         },
         child: const Icon(Icons.add),
@@ -146,7 +147,7 @@ class _TagsScreenState extends ConsumerState<TagsScreen> {
               title: Text(tag.name),
               subtitle: tag.color != null ? Text('Cor: ${tag.color}') : null,
               onTap: () async {
-                await Navigator.of(context).pushNamed('/tags/edit/${tag.id}');
+                await context.push('/tags/edit/${tag.id}');
                 ref.read(tagsProvider.notifier).loadTags();
               },
             ),

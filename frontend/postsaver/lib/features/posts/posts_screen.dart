@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/models/post.dart';
 import '../../core/models/social_source.dart';
@@ -146,7 +147,7 @@ class _PostsScreenState extends ConsumerState<PostsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.of(context).pushNamed('/posts/new');
+          context.push('/posts/new');
         },
         child: const Icon(Icons.add),
       ),

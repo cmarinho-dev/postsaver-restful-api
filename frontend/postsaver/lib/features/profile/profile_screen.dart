@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/models/user.dart';
@@ -99,7 +100,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final success =
           await ref.read(profileProvider.notifier).deleteUser();
       if (success && mounted) {
-        Navigator.of(context).pushReplacementNamed('/login');
+        context.go('/login');
       }
     }
   }
