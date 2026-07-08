@@ -10,6 +10,7 @@ import 'features/tags/tag_form_screen.dart';
 import 'features/tags/tags_screen.dart';
 import 'features/folders/folder_form_screen.dart';
 import 'features/folders/folders_screen.dart';
+import 'features/profile/profile_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -83,6 +84,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             },
           ),
         ],
+      ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
       ),
     ],
   );
