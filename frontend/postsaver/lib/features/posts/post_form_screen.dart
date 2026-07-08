@@ -11,11 +11,13 @@ import '../../core/models/folder.dart';
 import '../../core/models/post.dart';
 import '../../core/models/social_source.dart';
 import '../../core/models/tag.dart';
+import '../share/share_provider.dart';
 
 class PostFormScreen extends ConsumerStatefulWidget {
   final int? postId;
+  final String? initialUrl;
 
-  const PostFormScreen({super.key, this.postId});
+  const PostFormScreen({super.key, this.postId, this.initialUrl});
 
   @override
   ConsumerState<PostFormScreen> createState() => _PostFormScreenState();
@@ -43,6 +45,10 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialUrl != null) {
+      _urlController.text = widget.initialUrl!;
+      _source = inferSocialSource(widget.initialUrl!);
+    }
     _loadData();
   }
 
