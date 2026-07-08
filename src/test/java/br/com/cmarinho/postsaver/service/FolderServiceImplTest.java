@@ -4,8 +4,11 @@ import br.com.cmarinho.postsaver.controller.dto.request.FolderRequest;
 import br.com.cmarinho.postsaver.domain.model.Folder;
 import br.com.cmarinho.postsaver.domain.repository.FolderRepository;
 import br.com.cmarinho.postsaver.domain.repository.PostRepository;
+import br.com.cmarinho.postsaver.domain.repository.UserRepository;
+import br.com.cmarinho.postsaver.security.CurrentUserProvider;
 import br.com.cmarinho.postsaver.service.exception.BusinessException;
 import br.com.cmarinho.postsaver.service.impl.FolderServiceImpl;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,18 +27,31 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class FolderServiceImplTest {
 
+    private static final Long CURRENT_USER_ID = 1L;
+
     @Mock
     private FolderRepository folderRepository;
 
     @Mock
     private PostRepository postRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private CurrentUserProvider currentUserProvider;
+
     @InjectMocks
     private FolderServiceImpl folderService;
 
+    @BeforeEach
+    void setUp() {
+        when(currentUserProvider.getUserId()).thenReturn(CURRENT_USER_ID);
+    }
+
     @Test
     void createShouldRejectDuplicateName() {
-        when(folderRepository.existsByNameIgnoreCase("Receitas")).thenReturn(true);
+        when(folderRepository.existsByNameIgnoreCaseAndUserId("Receitas", CURRENT_USER_ID)).thenReturn(true);
 
         assertThatThrownBy(() -> folderService.create(new FolderRequest("Receitas", null, null)))
                 .isInstanceOf(BusinessException.class)
@@ -44,7 +60,7 @@ class FolderServiceImplTest {
 
     @Test
     void createShouldTrimName() {
-        when(folderRepository.existsByNameIgnoreCase("  Receitas  ")).thenReturn(false);
+        when(folderRepository.existsByNameIgnoreCaseAndUserId("  Receitas  ", CURRENT_USER_ID)).thenReturn(false);
         when(folderRepository.save(any(Folder.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Folder created = folderService.create(new FolderRequest("  Receitas  ", "desc", "#ff0000"));
@@ -57,7 +73,7 @@ class FolderServiceImplTest {
     void deleteShouldRejectFolderWithPosts() {
         Folder folder = new Folder();
         folder.setId(1L);
-        when(folderRepository.findById(1L)).thenReturn(Optional.of(folder));
+        when(folderRepository.findByIdAndUserId(1L, CURRENT_USER_ID)).thenReturn(Optional.of(folder));
         when(postRepository.existsByFolderId(1L)).thenReturn(true);
 
         assertThatThrownBy(() -> folderService.delete(1L))

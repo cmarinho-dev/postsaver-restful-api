@@ -5,9 +5,9 @@ spring:
     password:
   jpa:
     show-sql: true
-    open-in-view: false
+    open-in-view: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
@@ -18,3 +18,10 @@ spring:
       settings:
         trace: false
         web-allow-others: false
+
+app:
+  oauth:
+    issuer: http://localhost:8080
+    web-redirect-uri: http://localhost:4200/callback
+    web-post-logout-redirect-uri: http://localhost:4200/login
+    mobile-redirect-uri: br.com.cmarinho.postsaver://callback

@@ -11,6 +11,10 @@
 npm-debug.log
 yarn-error.log
 
+# This project uses npm (package-lock.json is the committed lockfile) -- ignore
+# a stray pnpm lockfile from an accidental `pnpm install` rather than commit it.
+pnpm-lock.yaml
+
 # IDEs and editors
 .idea/
 .project

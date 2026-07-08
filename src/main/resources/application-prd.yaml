@@ -4,6 +4,18 @@ spring:
     username: ${PGUSER}
     password: ${PGPASSWORD}
   jpa:
-    open-in-view: false
+    open-in-view: true
     hibernate:
       ddl-auto: validate
+
+app:
+  oauth:
+    issuer: ${APP_OAUTH_ISSUER}
+    web-redirect-uri: ${APP_OAUTH_WEB_REDIRECT_URI}
+    web-post-logout-redirect-uri: ${APP_OAUTH_WEB_POST_LOGOUT_REDIRECT_URI}
+    mobile-redirect-uri: ${APP_OAUTH_MOBILE_REDIRECT_URI:br.com.cmarinho.postsaver://callback}
+  security:
+    jwk:
+      keystore-location: ${APP_JWK_KEYSTORE_LOCATION}
+      keystore-password: ${APP_JWK_KEYSTORE_PASSWORD}
+      key-alias: ${APP_JWK_KEY_ALIAS}

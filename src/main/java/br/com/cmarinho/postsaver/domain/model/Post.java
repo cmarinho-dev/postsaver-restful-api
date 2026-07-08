@@ -39,6 +39,10 @@ public class Post {
     @JoinColumn(name = "folder_id")
     private Folder folder;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "tb_post_tag",
@@ -117,6 +121,14 @@ public class Post {
 
     public void setFolder(Folder folder) {
         this.folder = folder;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public Set<Tag> getTags() {

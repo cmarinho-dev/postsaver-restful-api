@@ -10,6 +10,10 @@ public final class PostSpecifications {
     private PostSpecifications() {
     }
 
+    public static Specification<Post> belongsToUser(Long userId) {
+        return (root, query, cb) -> cb.equal(root.get("user").get("id"), userId);
+    }
+
     public static Specification<Post> hasSource(SocialSource source) {
         return (root, query, cb) -> source == null ? null : cb.equal(root.get("source"), source);
     }

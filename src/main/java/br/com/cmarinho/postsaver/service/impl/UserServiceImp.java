@@ -10,8 +10,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Service
 public class UserServiceImp implements UserService {
 
@@ -21,12 +19,6 @@ public class UserServiceImp implements UserService {
     public UserServiceImp(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.repository = userRepository;
         this.passwordEncoder = passwordEncoder;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<User> findAll() {
-        return repository.findAll();
     }
 
     @Override
