@@ -36,6 +36,7 @@ public class SecurityConfig {
 
         http
                 .securityMatcher(authorizationServerConfigurer.getEndpointsMatcher())
+                .cors(Customizer.withDefaults())
                 .with(authorizationServerConfigurer, authorizationServer -> authorizationServer
                         .oidc(Customizer.withDefaults()))
                 .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
@@ -53,6 +54,7 @@ public class SecurityConfig {
                                                         RestAccessDeniedHandler restAccessDeniedHandler) throws Exception {
         http
                 .securityMatcher("/api/**")
+                .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
