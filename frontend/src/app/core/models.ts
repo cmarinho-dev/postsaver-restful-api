@@ -73,3 +73,17 @@ export interface PostFilter {
   page?: number;
   size?: number;
 }
+
+export interface User {
+  id: number;
+  name: string;
+  username: string;
+  email: string;
+}
+
+export interface UserRequest {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+}

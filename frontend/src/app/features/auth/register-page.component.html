@@ -1,0 +1,35 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="brand">
+      <i class="pi pi-bookmark-fill"></i>
+      <span>PostSaver</span>
+    </div>
+    <p class="subtitle">Crie sua conta para começar a salvar posts.</p>
+
+    <div class="field">
+      <label>Nome *</label>
+      <input pInputText [(ngModel)]="form.name" maxlength="50" placeholder="Seu nome" />
+    </div>
+
+    <div class="field">
+      <label>Usuário *</label>
+      <input pInputText [(ngModel)]="form.username" maxlength="20" placeholder="nome.usuario" />
+    </div>
+
+    <div class="field">
+      <label>E-mail *</label>
+      <input pInputText type="email" [(ngModel)]="form.email" maxlength="120" placeholder="voce@exemplo.com" />
+    </div>
+
+    <div class="field">
+      <label>Senha *</label>
+      <p-password [(ngModel)]="form.password" [feedback]="false" [toggleMask]="true" styleClass="w-full" inputStyleClass="w-full" />
+    </div>
+
+    <p-button label="Criar conta" icon="pi pi-user-plus" [loading]="saving" (onClick)="register()" styleClass="w-full" />
+
+    <p class="hint">
+      Já tem conta? <a routerLink="/login">Entrar</a>
+    </p>
+  </div>
+</div>

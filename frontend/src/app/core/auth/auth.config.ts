@@ -8,7 +8,6 @@ export const authConfig: AuthConfig = {
   clientId: environment.oauthClientId,
   responseType: 'code',
   scope: 'openid profile',
-  useRefreshTokens: true,
   showDebugInformation: !environment.production,
   requireHttps: environment.production,
 };

@@ -15,6 +15,9 @@ export class AuthService {
     this.oauthService.configure(authConfig);
     await this.oauthService.loadDiscoveryDocument();
     await this.oauthService.tryLoginCodeFlow();
+    if (this.oauthService.hasValidAccessToken()) {
+      this.oauthService.setupAutomaticSilentRefresh();
+    }
   }
 
   login(): void {
