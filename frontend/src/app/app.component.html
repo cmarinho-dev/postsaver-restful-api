@@ -2,7 +2,7 @@
 <p-confirmdialog />
 
 <div class="layout">
-  <header class="topbar" *ngIf="isAuthenticated">
+  <header class="topbar">
     <div class="brand">
       <i class="pi pi-bookmark-fill"></i>
       <span>PostSaver</span>
@@ -18,7 +18,6 @@
         <i class="pi pi-tags"></i> Tags
       </a>
     </nav>
-    <p-button label="Sair" icon="pi pi-sign-out" [text]="true" (onClick)="logout()" />
   </header>
 
   <main class="content">
