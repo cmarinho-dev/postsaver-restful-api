@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../api/api_client.dart';
 import 'auth_interceptor.dart';
 import 'auth_service.dart';
 
@@ -48,7 +49,10 @@ final authStateProvider =
   return AuthStateNotifier(authService);
 });
 
-final authInterceptorProvider = Provider<Interceptor>((ref) {
+final apiClientProvider = Provider<Dio>((ref) {
   final authService = ref.watch(authServiceProvider);
-  return AuthInterceptor(authService);
+  final dio = createApiClient();
+  final interceptor = AuthInterceptor(authService, dio);
+  dio.interceptors.add(interceptor);
+  return dio;
 });

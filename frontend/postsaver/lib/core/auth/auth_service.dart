@@ -30,6 +30,7 @@ class AuthService {
         env.redirectUri,
         issuer: env.issuer,
         scopes: ['openid', 'profile'],
+        externalUserAgent: ExternalUserAgent.ephemeralAsWebAuthenticationSession,
       ),
     );
 

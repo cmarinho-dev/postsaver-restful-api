@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/user_api.dart';
+import '../../core/auth/auth_provider.dart';
 import '../../core/models/api_error.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
@@ -38,6 +40,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       await registerUser(
+        dio: ref.read(apiClientProvider),
         name: _nameController.text.trim(),
         username: _usernameController.text.trim(),
         email: _emailController.text.trim(),
@@ -70,13 +73,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
+      appBar: AppBar(title: const Text('Criar conta')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: ListView(
             children: [
               if (_errorMessage != null)
                 Padding(
@@ -91,16 +93,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Name',
-                  hintText: 'Enter your full name',
+                  labelText: 'Nome',
+                  hintText: 'Digite seu nome completo',
                 ),
                 textCapitalization: TextCapitalization.words,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter your name';
+                    return 'Por favor, insira seu nome';
                   }
                   if (value.length > 50) {
-                    return 'Name must be 50 characters or less';
+                    return 'Nome deve ter no máximo 50 caracteres';
                   }
                   return null;
                 },
@@ -109,15 +111,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
               TextFormField(
                 controller: _usernameController,
                 decoration: const InputDecoration(
-                  labelText: 'Username',
-                  hintText: 'Choose a username',
+                  labelText: 'Usuário',
+                  hintText: 'Escolha um nome de usuário',
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a username';
+                    return 'Por favor, insira um nome de usuário';
                   }
                   if (value.length > 20) {
-                    return 'Username must be 20 characters or less';
+                    return 'Nome de usuário deve ter no máximo 20 caracteres';
                   }
                   return null;
                 },
@@ -126,20 +128,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'Enter your email address',
+                  labelText: 'E-mail',
+                  hintText: 'Digite seu endereço de e-mail',
                 ),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
+                    return 'Por favor, insira seu e-mail';
                   }
                   if (value.length > 120) {
-                    return 'Email must be 120 characters or less';
+                    return 'E-mail deve ter no máximo 120 caracteres';
                   }
                   final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
                   if (!emailRegex.hasMatch(value)) {
-                    return 'Please enter a valid email address';
+                    return 'Por favor, insira um e-mail válido';
                   }
                   return null;
                 },
@@ -148,19 +150,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
               TextFormField(
                 controller: _passwordController,
                 decoration: const InputDecoration(
-                  labelText: 'Password',
-                  hintText: 'Create a password',
+                  labelText: 'Senha',
+                  hintText: 'Crie uma senha',
                 ),
                 obscureText: true,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a password';
+                    return 'Por favor, insira uma senha';
                   }
                   if (value.length < 6) {
-                    return 'Password must be at least 6 characters';
+                    return 'Senha deve ter pelo menos 6 caracteres';
                   }
                   if (value.length > 72) {
-                    return 'Password must be 72 characters or less';
+                    return 'Senha deve ter no máximo 72 caracteres';
                   }
                   return null;
                 },
@@ -174,14 +176,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Register'),
+                    : const Text('Cadastrar'),
               ),
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
-                child: const Text('Already have an account? Sign in'),
+                child: const Text('Já tem conta? Entrar'),
               ),
             ],
           ),
