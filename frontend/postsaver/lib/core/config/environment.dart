@@ -14,13 +14,13 @@ class Environment {
   static final Environment dev = Environment._(
     issuer: _devIssuer,
     apiBase: _devIssuer,
-    redirectUri: 'com.postsaver:/callback',
+    redirectUri: 'br.com.cmarinho.postsaver://callback',
   );
 
   static final Environment prod = Environment._(
     issuer: _prodIssuer,
     apiBase: _prodIssuer,
-    redirectUri: 'com.postsaver:/callback',
+    redirectUri: 'br.com.cmarinho.postsaver://callback',
   );
 
   final String issuer;
@@ -34,7 +34,7 @@ class Environment {
         return Environment._(
           issuer: _iosSimIssuer,
           apiBase: _devIssuer,
-          redirectUri: 'com.postsaver:/callback',
+          redirectUri: 'br.com.cmarinho.postsaver://callback',
         );
       }
       return dev;

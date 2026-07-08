@@ -26,10 +26,10 @@ class AuthService {
 
     final AuthorizationTokenResponse? result = await _appAuth.authorizeAndExchangeCode(
       AuthorizationTokenRequest(
-        'postsaver', // client id
+        'postsaver-mobile',
         env.redirectUri,
         issuer: env.issuer,
-        scopes: ['openid', 'profile', 'email'],
+        scopes: ['openid', 'profile'],
       ),
     );
 
@@ -47,11 +47,11 @@ class AuthService {
 
     final TokenResponse? result = await _appAuth.token(
       TokenRequest(
-        'postsaver', // client id
+        'postsaver-mobile',
         env.redirectUri,
         issuer: env.issuer,
         refreshToken: _refreshToken,
-        scopes: ['openid', 'profile', 'email'],
+        scopes: ['openid', 'profile'],
       ),
     );
 
