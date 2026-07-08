@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../config/environment.dart';
 
-Dio createApiClient() {
+Dio createApiClient({List<Interceptor>? interceptors}) {
   final baseUrl = '${Environment.current.apiBase}/api/v1';
 
   final dio = Dio(
@@ -16,6 +16,10 @@ Dio createApiClient() {
       },
     ),
   );
+
+  if (interceptors != null) {
+    dio.interceptors.addAll(interceptors);
+  }
 
   return dio;
 }
