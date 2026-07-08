@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Folder, Page, Post, PostFilter, PostRequest, Tag, User, UserRequest } from './models';
+import { Folder, Page, Post, PostFilter, PostRequest, Tag } from './models';
 
 const BASE = '/api/v1';
 
@@ -78,18 +78,5 @@ export class TagApiService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${BASE}/tags/${id}`);
-  }
-}
-
-@Injectable({ providedIn: 'root' })
-export class UserApiService {
-  private readonly http = inject(HttpClient);
-
-  register(request: UserRequest): Observable<User> {
-    return this.http.post<User>(`${BASE}/users`, request);
-  }
-
-  me(): Observable<User> {
-    return this.http.get<User>(`${BASE}/users/me`);
   }
 }
