@@ -23,20 +23,24 @@ class _TagsScreenState extends ConsumerState<TagsScreen> {
   }
 
   void _onDeleteTag(int tagId, String tagName) {
+    final scaffoldContext = context;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Excluir tag'),
         content: Text('Tem certeza que deseja excluir a tag "$tagName"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancelar'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.of(dialogContext).pop();
               ref.read(tagsProvider.notifier).deleteTag(tagId);
+              ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                const SnackBar(content: Text('Tag excluída')),
+              );
             },
             child: const Text('Excluir', style: TextStyle(color: Colors.red)),
           ),
@@ -95,17 +99,10 @@ class _TagsScreenState extends ConsumerState<TagsScreen> {
             Icon(Icons.label_off, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'Nenhuma tag encontrada',
+              'Nenhuma tag. Toque + para criar uma.',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Toque no + para adicionar uma nova tag',
-              style: TextStyle(
-                color: Colors.grey[500],
               ),
             ),
           ],

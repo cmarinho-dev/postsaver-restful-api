@@ -75,20 +75,24 @@ class _PostsScreenState extends ConsumerState<PostsScreen> {
   }
 
   void _onDeletePost(int postId) {
+    final scaffoldContext = context;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Excluir post'),
         content: const Text('Tem certeza que deseja excluir este post?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancelar'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.of(dialogContext).pop();
               ref.read(postsProvider.notifier).deletePost(postId);
+              ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                const SnackBar(content: Text('Post excluído')),
+              );
             },
             child: const Text('Excluir', style: TextStyle(color: Colors.red)),
           ),
@@ -234,17 +238,10 @@ class _PostsScreenState extends ConsumerState<PostsScreen> {
             Icon(Icons.post_add, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'Nenhum post encontrado',
+              'Nenhum post encontrado. Toque + para salvar um post.',
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Toque no + para adicionar um novo post',
-              style: TextStyle(
-                color: Colors.grey[500],
               ),
             ),
           ],

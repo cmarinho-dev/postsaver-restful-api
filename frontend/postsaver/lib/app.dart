@@ -85,7 +85,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/posts/new',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const PostFormScreen(),
+        builder: (context, state) {
+          final initialUrl = state.uri.queryParameters['url'];
+          return PostFormScreen(initialUrl: initialUrl);
+        },
       ),
       GoRoute(
         path: '/posts/edit/:id',

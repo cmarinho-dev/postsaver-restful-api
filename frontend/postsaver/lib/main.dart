@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'core/auth/auth_provider.dart';
+import 'features/share/share_handler.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +31,8 @@ class _AppInitState extends ConsumerState<AppInit> {
 
   @override
   Widget build(BuildContext context) {
-    return const PostSaverApp();
+    return const ShareHandler(
+      child: PostSaverApp(),
+    );
   }
 }
