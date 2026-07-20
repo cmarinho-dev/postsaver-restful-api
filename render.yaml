@@ -1,0 +1,34 @@
+# Blueprint do Render (https://render.com/docs/blueprint-spec).
+# Deploy: Render Dashboard > New > Blueprint, apontando para este repositório.
+# As variáveis com `sync: false` são solicitadas na criação do serviço
+# (credenciais do banco e senha do keystore) — nunca ficam no repositório.
+services:
+  - type: web
+    name: postsaver-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /.well-known/openid-configuration
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prd
+      - key: APP_OAUTH_ISSUER
+        value: https://postsaver-api.onrender.com
+      # O cliente web (Angular) ainda não está publicado; valores reservados.
+      - key: APP_OAUTH_WEB_REDIRECT_URI
+        value: http://localhost:4200/callback
+      - key: APP_OAUTH_WEB_POST_LOGOUT_REDIRECT_URI
+        value: http://localhost:4200/login
+      - key: APP_JWK_KEYSTORE_LOCATION
+        value: file:/etc/secrets/jwk.p12
+      - key: APP_JWK_KEY_ALIAS
+        value: postsaver-jwk
+      - key: APP_JWK_KEYSTORE_PASSWORD
+        sync: false
+      - key: PGHOST
+        sync: false
+      - key: PGDATABASE
+        sync: false
+      - key: PGUSER
+        sync: false
+      - key: PGPASSWORD
+        sync: false

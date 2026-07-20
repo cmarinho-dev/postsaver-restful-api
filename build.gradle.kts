@@ -47,3 +47,7 @@ tasks.jar {
         attributes["Main-Class"] = "br.com.cmarinho.postsaver.Application"
     }
 }
+
+tasks.bootJar {
+    archiveFileName.set("app.jar")
+}

@@ -1,6 +1,12 @@
+# O Render injeta a porta em PORT e termina TLS no proxy; os headers
+# X-Forwarded-* precisam ser honrados para os redirects OAuth saírem em https.
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: framework
+
 spring:
   datasource:
-    url: jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}
+    url: jdbc:postgresql://${PGHOST}:${PGPORT:5432}/${PGDATABASE}?sslmode=${PGSSLMODE:require}
     username: ${PGUSER}
     password: ${PGPASSWORD}
   jpa:
