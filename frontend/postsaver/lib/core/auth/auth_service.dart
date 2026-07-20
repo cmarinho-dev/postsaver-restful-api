@@ -31,6 +31,7 @@ class AuthService {
         issuer: env.issuer,
         scopes: ['openid', 'profile'],
         externalUserAgent: ExternalUserAgent.ephemeralAsWebAuthenticationSession,
+        allowInsecureConnections: env.allowInsecureConnections,
       ),
     );
 
@@ -53,6 +54,7 @@ class AuthService {
         issuer: env.issuer,
         refreshToken: _refreshToken,
         scopes: ['openid', 'profile'],
+        allowInsecureConnections: env.allowInsecureConnections,
       ),
     );
 

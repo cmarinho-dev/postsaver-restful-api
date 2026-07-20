@@ -7,9 +7,12 @@ class Environment {
     required this.redirectUri,
   });
 
-  static const _devIssuer = 'http://10.0.2.2:8080';
-  static const _iosSimIssuer = 'http://localhost:8080';
-  static const _prodIssuer = 'https://postsaver.example.com';
+  // O backend anuncia http://localhost:8080 como issuer no discovery
+  // document, então o app precisa acessá-lo pelo mesmo host. No Android,
+  // mapeie a porta com: adb reverse tcp:8080 tcp:8080
+  static const _devIssuer = 'http://localhost:8080';
+  // Deve bater com o nome do serviço no render.yaml (APP_OAUTH_ISSUER).
+  static const _prodIssuer = 'https://postsaver-api.onrender.com';
 
   static final Environment dev = Environment._(
     issuer: _devIssuer,
@@ -27,18 +30,9 @@ class Environment {
   final String apiBase;
   final String redirectUri;
 
-  static Environment get current {
-    if (kDebugMode) {
-      // iOS Simulator uses localhost instead of 10.0.2.2
-      if (defaultTargetPlatform == TargetPlatform.iOS) {
-        return Environment._(
-          issuer: _iosSimIssuer,
-          apiBase: _devIssuer,
-          redirectUri: 'br.com.cmarinho.postsaver://callback',
-        );
-      }
-      return dev;
-    }
-    return prod;
-  }
+  /// AppAuth bloqueia issuers http:// por padrão; liberado apenas para
+  /// o backend local de desenvolvimento.
+  bool get allowInsecureConnections => issuer.startsWith('http://');
+
+  static Environment get current => kDebugMode ? dev : prod;
 }
