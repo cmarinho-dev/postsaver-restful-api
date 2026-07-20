@@ -42,3 +42,9 @@ jwk.p12
 
 ### Local tooling ###
 .mimocode/
+
+### Internal AI-agent planning docs (not for the repo) ###
+/MOBILE-FLUTTER.md
+/MELHORIAS.md
+/frontend/MOBILE-FLUTTER.md
+/frontend/docs/compose/
