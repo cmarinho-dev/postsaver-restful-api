@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,6 +8,10 @@ import '../../core/api/folders_api.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/models/api_error.dart';
 import '../../core/models/folder.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/theme/source_style.dart';
+import '../../core/widgets/app_feedback.dart';
+import '../../core/widgets/color_swatch_picker.dart';
 
 class FolderFormScreen extends ConsumerStatefulWidget {
   final int? folderId;
@@ -28,27 +33,10 @@ class _FolderFormScreenState extends ConsumerState<FolderFormScreen> {
   String? _errorMessage;
   bool _isInitialized = false;
 
-  static const List<String> _presetColors = [
-    '#E53935', // Red
-    '#D81B60', // Pink
-    '#8E24AA', // Purple
-    '#5E35B1', // Deep Purple
-    '#3949AB', // Indigo
-    '#1E88E5', // Blue
-    '#039BE5', // Light Blue
-    '#00ACC1', // Cyan
-    '#00897B', // Teal
-    '#43A047', // Green
-    '#7CB342', // Light Green
-    '#F4511E', // Deep Orange
-    '#F4B400', // Amber
-    '#6D4C41', // Brown
-    '#546E7A', // Blue Grey
-  ];
-
   @override
   void initState() {
     super.initState();
+    _nameController.addListener(() => setState(() {}));
     if (_isEditing) {
       _loadFolder();
     } else {
@@ -67,9 +55,10 @@ class _FolderFormScreenState extends ConsumerState<FolderFormScreen> {
 
   bool get _isEditing => widget.folderId != null;
 
-  String get _title => _isEditing ? 'Editar Pasta' : 'Criar Pasta';
+  String get _title => _isEditing ? 'Editar pasta' : 'Nova pasta';
 
-  String get _submitLabel => _isEditing ? 'Salvar' : 'Criar';
+  String get _submitLabel =>
+      _isEditing ? 'Salvar alterações' : 'Criar pasta';
 
   Future<void> _loadFolder() async {
     setState(() {
@@ -122,8 +111,9 @@ class _FolderFormScreenState extends ConsumerState<FolderFormScreen> {
       }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_isEditing ? 'Pasta atualizada' : 'Pasta criada com sucesso')),
+      showAppSnackBar(
+        context,
+        _isEditing ? 'Pasta atualizada' : 'Pasta criada com sucesso',
       );
       context.pop(true);
     } on ApiError catch (e) {
@@ -141,19 +131,10 @@ class _FolderFormScreenState extends ConsumerState<FolderFormScreen> {
     }
   }
 
-  Color _parseColor(String? colorHex) {
-    if (colorHex == null || colorHex.isEmpty) {
-      return Colors.blue;
-    }
-    try {
-      return Color(int.parse(colorHex.replaceFirst('#', '0xFF')));
-    } catch (e) {
-      return Colors.blue;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     if (_isLoadingData) {
       return Scaffold(
         appBar: AppBar(title: Text(_title)),
@@ -165,55 +146,120 @@ class _FolderFormScreenState extends ConsumerState<FolderFormScreen> {
       return Scaffold(
         appBar: AppBar(title: Text(_title)),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadFolder,
-                child: const Text('Tentar novamente'),
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.cloud_off_rounded,
+                  size: 44,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(height: 16),
+                Text(_errorMessage!, textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                FilledButton.tonal(
+                  onPressed: _loadFolder,
+                  child: const Text('Tentar novamente'),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
+    final previewColor = parseHexColor(_selectedColor);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_title),
-        actions: [
-          TextButton(
-            onPressed: _isSaving ? null : _submit,
-            child: _isSaving
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(_submitLabel),
-          ),
-        ],
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
           children: [
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red),
+            if (_errorMessage != null) ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color:
+                      theme.colorScheme.errorContainer.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: theme.colorScheme.error,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: TextStyle(
+                          color: theme.colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().shake(hz: 4, duration: 400.ms),
+              const SizedBox(height: 16),
+            ],
+            // Preview da pasta
+            Center(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      previewColor,
+                      Color.lerp(previewColor, Colors.black, 0.25)!,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                  boxShadow: [
+                    BoxShadow(
+                      color: previewColor.withValues(alpha: 0.4),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.folder_rounded,
+                  color: Colors.white,
+                  size: 40,
                 ),
               ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                _nameController.text.trim().isEmpty
+                    ? 'Sua pasta'
+                    : _nameController.text.trim(),
+                style: theme.textTheme.titleMedium,
+              ),
+            ),
+            const SizedBox(height: 24),
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(
                 labelText: 'Nome *',
-                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.folder_outlined),
               ),
               maxLength: 60,
               validator: (value) {
@@ -226,12 +272,12 @@ class _FolderFormScreenState extends ConsumerState<FolderFormScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _descriptionController,
               decoration: const InputDecoration(
                 labelText: 'Descrição',
-                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
               ),
               maxLength: 160,
               maxLines: 3,
@@ -242,60 +288,38 @@ class _FolderFormScreenState extends ConsumerState<FolderFormScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Cor',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            const SizedBox(height: 12),
+            Text(
+              'COR',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildColorOption(null, 'Nenhuma'),
-                ..._presetColors.map((colorHex) => _buildColorOption(colorHex, null)),
-              ],
+            const SizedBox(height: 12),
+            ColorSwatchPicker(
+              selected: _selectedColor,
+              onChanged: (color) => setState(() => _selectedColor = color),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildColorOption(String? colorHex, String? label) {
-    final isSelected = _selectedColor == colorHex;
-    final color = _parseColor(colorHex);
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedColor = colorHex;
-        });
-      },
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isSelected ? Colors.black : Colors.grey[300]!,
-            width: isSelected ? 3 : 1,
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          child: FilledButton.icon(
+            onPressed: _isSaving ? null : _submit,
+            icon: _isSaving
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
+                  )
+                : const Icon(Icons.check_rounded, size: 20),
+            label: Text(_submitLabel),
           ),
         ),
-        child: isSelected
-            ? const Icon(Icons.check, color: Colors.white, size: 24)
-            : (label != null
-                ? Center(
-                    child: Text(
-                      label[0],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  )
-                : null),
       ),
     );
   }

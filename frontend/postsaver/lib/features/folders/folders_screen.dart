@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/models/folder.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/theme/source_style.dart';
+import '../../core/widgets/app_feedback.dart';
+import '../../core/widgets/gradient_fab.dart';
+import '../../core/widgets/skeleton.dart';
+import '../../core/widgets/state_views.dart';
+import '../posts/posts_provider.dart';
 import 'folders_provider.dart';
 
 class FoldersScreen extends ConsumerStatefulWidget {
@@ -23,167 +31,298 @@ class _FoldersScreenState extends ConsumerState<FoldersScreen> {
     await ref.read(foldersProvider.notifier).loadFolders(refresh: true);
   }
 
-  void _onDeleteFolder(Folder folder) {
-    final scaffoldContext = context;
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Excluir pasta'),
-        content: Text('Tem certeza que deseja excluir a pasta "${folder.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              ref.read(foldersProvider.notifier).deleteFolder(folder.id);
-              ScaffoldMessenger.of(scaffoldContext).showSnackBar(
-                const SnackBar(content: Text('Pasta excluída')),
-              );
-            },
-            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+  Future<void> _onDeleteFolder(Folder folder) async {
+    final confirmed = await showConfirmSheet(
+      context,
+      title: 'Excluir pasta?',
+      message:
+          'A pasta "${folder.name}" será removida. Os posts dela não serão excluídos.',
+      confirmLabel: 'Excluir pasta',
+      icon: Icons.folder_delete_outlined,
+      isDestructive: true,
     );
-  }
-
-  void _onEditFolder(Folder folder) {
-    context.push('/folders/edit/${folder.id}');
-  }
-
-  void _onCreateFolder() {
-    context.push('/folders/new');
-  }
-
-  Color _parseColor(String? colorHex) {
-    if (colorHex == null || colorHex.isEmpty) {
-      return Colors.blue;
+    if (confirmed && mounted) {
+      await ref.read(foldersProvider.notifier).deleteFolder(folder.id);
+      if (mounted) {
+        showAppSnackBar(context, 'Pasta excluída');
+      }
     }
-    try {
-      return Color(int.parse(colorHex.replaceFirst('#', '0xFF')));
-    } catch (e) {
-      return Colors.blue;
+  }
+
+  void _onOpenFolder(Folder folder) {
+    final filter = ref.read(postsProvider).filter;
+    ref.read(postsProvider.notifier).updateFilter(
+          filter.copyWith(
+            folderId: folder.id,
+            folderName: folder.name,
+            clearTag: true,
+          ),
+        );
+    context.go('/');
+  }
+
+  Future<void> _onEditFolder(Folder folder) async {
+    await context.push('/folders/edit/${folder.id}');
+    if (mounted) {
+      ref.read(foldersProvider.notifier).loadFolders(refresh: true);
+    }
+  }
+
+  Future<void> _onCreateFolder() async {
+    await context.push('/folders/new');
+    if (mounted) {
+      ref.read(foldersProvider.notifier).loadFolders(refresh: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final foldersState = ref.watch(foldersProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Minhas Pastas'),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+              child: Text('Pastas', style: theme.textTheme.headlineSmall),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                'Toque em uma pasta para ver os posts dela.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            Expanded(child: _buildContent(foldersState)),
+          ],
+        ),
       ),
-      body: _buildContent(foldersState),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: GradientFab(
+        label: 'Nova pasta',
+        icon: Icons.create_new_folder_outlined,
         onPressed: _onCreateFolder,
-        child: const Icon(Icons.add),
       ),
     );
   }
 
   Widget _buildContent(FoldersState foldersState) {
     if (foldersState.isLoading && foldersState.folders.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (foldersState.error != null && foldersState.folders.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 16),
-            Text('Erro: ${foldersState.error}'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _onRefresh,
-              child: const Text('Tentar novamente'),
-            ),
-          ],
+      return GridView.count(
+        crossAxisCount: 2,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 1.25,
+        physics: const NeverScrollableScrollPhysics(),
+        children: List.generate(
+          6,
+          (_) => const SkeletonBox(
+            height: double.infinity,
+            borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusL)),
+          ),
         ),
       );
     }
 
+    if (foldersState.error != null && foldersState.folders.isEmpty) {
+      return ErrorState(message: foldersState.error!, onRetry: _onRefresh);
+    }
+
     if (foldersState.folders.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.folder_open, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'Nenhuma pasta. Toque + para criar uma.',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
+      return EmptyState(
+        icon: Icons.folder_open_rounded,
+        title: 'Nenhuma pasta ainda',
+        message:
+            'Crie pastas para agrupar seus posts por assunto — receitas, viagens, inspirações...',
+        actionLabel: 'Criar primeira pasta',
+        onAction: _onCreateFolder,
       );
     }
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      child: ListView.builder(
+      child: GridView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.25,
+        ),
         itemCount: foldersState.folders.length,
         itemBuilder: (context, index) {
-          return _buildFolderCard(foldersState.folders[index]);
+          final folder = foldersState.folders[index];
+          final card = _FolderCard(
+            folder: folder,
+            onOpen: () => _onOpenFolder(folder),
+            onEdit: () => _onEditFolder(folder),
+            onDelete: () => _onDeleteFolder(folder),
+          );
+          if (index < 8) {
+            return card
+                .animate()
+                .fadeIn(delay: (40 * index).ms, duration: 300.ms)
+                .scale(
+                  begin: const Offset(0.92, 0.92),
+                  delay: (40 * index).ms,
+                  duration: 300.ms,
+                  curve: Curves.easeOutCubic,
+                );
+          }
+          return card;
         },
       ),
     );
   }
+}
 
-  Widget _buildFolderCard(Folder folder) {
-    final color = _parseColor(folder.color);
+class _FolderCard extends StatelessWidget {
+  final Folder folder;
+  final VoidCallback onOpen;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
-    return Dismissible(
-      key: ValueKey(folder.id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 16),
-        color: Colors.red,
-        child: const Icon(Icons.delete, color: Colors.white),
+  const _FolderCard({
+    required this.folder,
+    required this.onOpen,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final color = parseHexColor(folder.color);
+
+    return Material(
+      color: Color.alphaBlend(
+        color.withValues(alpha: isDark ? 0.16 : 0.08),
+        scheme.surfaceContainerLow,
       ),
-      confirmDismiss: (_) async {
-        _onDeleteFolder(folder);
-        return false;
-      },
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: ListTile(
-          leading: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(Icons.folder, color: color),
-          ),
-          title: Text(
-            folder.name,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
+      borderRadius: BorderRadius.circular(AppTheme.radiusL),
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppTheme.radiusL),
+            border: Border.all(
+              color: color.withValues(alpha: isDark ? 0.4 : 0.25),
             ),
           ),
-          subtitle: folder.description != null && folder.description!.isNotEmpty
-              ? Text(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          color,
+                          Color.lerp(color, Colors.black, 0.25)!,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.folder_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                  const Spacer(),
+                  _FolderMenu(onEdit: onEdit, onDelete: onDelete),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                folder.name,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (folder.description != null &&
+                  folder.description!.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
                   folder.description!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                )
-              : null,
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => _onEditFolder(folder),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _FolderMenu extends StatelessWidget {
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _FolderMenu({required this.onEdit, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return MenuAnchor(
+      style: MenuStyle(
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusM),
+          ),
+        ),
+      ),
+      builder: (context, controller, _) => InkWell(
+        customBorder: const CircleBorder(),
+        onTap: () =>
+            controller.isOpen ? controller.close() : controller.open(),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(
+            Icons.more_horiz_rounded,
+            size: 20,
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+      menuChildren: [
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.edit_rounded, size: 18),
+          onPressed: onEdit,
+          child: const Text('Editar'),
+        ),
+        MenuItemButton(
+          leadingIcon: Icon(
+            Icons.delete_outline_rounded,
+            size: 18,
+            color: scheme.error,
+          ),
+          onPressed: onDelete,
+          child: Text('Excluir', style: TextStyle(color: scheme.error)),
+        ),
+      ],
     );
   }
 }

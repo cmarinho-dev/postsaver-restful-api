@@ -1,11 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/tags_api.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/models/api_error.dart';
 import '../../core/models/tag.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/theme/source_style.dart';
+import '../../core/widgets/app_feedback.dart';
+import '../../core/widgets/color_swatch_picker.dart';
 
 class TagFormScreen extends ConsumerStatefulWidget {
   final int? tagId;
@@ -26,32 +31,10 @@ class _TagFormScreenState extends ConsumerState<TagFormScreen> {
   String? _errorMessage;
   bool _isInitialized = false;
 
-  static const List<String> _presetColors = [
-    '#E53935', // Red
-    '#D81B60', // Pink
-    '#8E24AA', // Purple
-    '#5E35B1', // Deep Purple
-    '#3949AB', // Indigo
-    '#1E88E5', // Blue
-    '#039BE5', // Light Blue
-    '#00ACC1', // Cyan
-    '#00897B', // Teal
-    '#43A047', // Green
-    '#7CB342', // Light Green
-    '#C0CA33', // Lime
-    '#FDD835', // Yellow
-    '#FFB300', // Amber
-    '#FB8C00', // Orange
-    '#F4511E', // Deep Orange
-    '#6D4C41', // Brown
-    '#757575', // Grey
-    '#546E7A', // Blue Grey
-    '#26A69A', // Teal variant
-  ];
-
   @override
   void initState() {
     super.initState();
+    _nameController.addListener(() => setState(() {}));
     _loadData();
   }
 
@@ -65,9 +48,9 @@ class _TagFormScreenState extends ConsumerState<TagFormScreen> {
 
   bool get _isEditing => widget.tagId != null;
 
-  String get _title => _isEditing ? 'Editar Tag' : 'Criar Tag';
+  String get _title => _isEditing ? 'Editar tag' : 'Nova tag';
 
-  String get _submitLabel => _isEditing ? 'Salvar' : 'Criar';
+  String get _submitLabel => _isEditing ? 'Salvar alterações' : 'Criar tag';
 
   Future<void> _loadData() async {
     if (!_isEditing) {
@@ -125,8 +108,9 @@ class _TagFormScreenState extends ConsumerState<TagFormScreen> {
       }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_isEditing ? 'Tag atualizada' : 'Tag criada com sucesso')),
+      showAppSnackBar(
+        context,
+        _isEditing ? 'Tag atualizada' : 'Tag criada com sucesso',
       );
       Navigator.of(context).pop(tag);
     } on ApiError catch (e) {
@@ -146,6 +130,8 @@ class _TagFormScreenState extends ConsumerState<TagFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     if (_isLoadingData) {
       return Scaffold(
         appBar: AppBar(title: Text(_title)),
@@ -157,55 +143,120 @@ class _TagFormScreenState extends ConsumerState<TagFormScreen> {
       return Scaffold(
         appBar: AppBar(title: Text(_title)),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadData,
-                child: const Text('Tentar novamente'),
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.cloud_off_rounded,
+                  size: 44,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(height: 16),
+                Text(_errorMessage!, textAlign: TextAlign.center),
+                const SizedBox(height: 20),
+                FilledButton.tonal(
+                  onPressed: _loadData,
+                  child: const Text('Tentar novamente'),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
+    final previewColor = parseHexColor(_selectedColor);
+    final previewName = _nameController.text.trim().isEmpty
+        ? 'sua tag'
+        : _nameController.text.trim();
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_title),
-        actions: [
-          TextButton(
-            onPressed: _isSaving ? null : _submit,
-            child: _isSaving
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(_submitLabel),
-          ),
-        ],
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
           children: [
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red),
+            if (_errorMessage != null) ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color:
+                      theme.colorScheme.errorContainer.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: theme.colorScheme.error,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: TextStyle(
+                          color: theme.colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().shake(hz: 4, duration: 400.ms),
+              const SizedBox(height: 16),
+            ],
+            // Preview da tag
+            Center(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: previewColor.withValues(
+                    alpha: theme.brightness == Brightness.dark ? 0.22 : 0.12,
+                  ),
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(
+                    color: previewColor.withValues(alpha: 0.45),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: previewColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      previewName,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ),
+            const SizedBox(height: 24),
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(
                 labelText: 'Nome *',
-                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.sell_outlined),
               ),
               maxLength: 40,
               validator: (value) {
@@ -218,193 +269,39 @@ class _TagFormScreenState extends ConsumerState<TagFormScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Cor',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            const SizedBox(height: 12),
+            Text(
+              'COR',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
             ),
-            const SizedBox(height: 8),
-            _buildColorPicker(),
+            const SizedBox(height: 12),
+            ColorSwatchPicker(
+              selected: _selectedColor,
+              onChanged: (color) => setState(() => _selectedColor = color),
+            ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildColorPicker() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Selected color preview
-        if (_selectedColor != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Color(
-                    int.parse(_selectedColor!.replaceFirst('#', '0xFF')),
-                  ),
-                  radius: 16,
-                ),
-                const SizedBox(width: 8),
-                Text('Cor selecionada: $_selectedColor'),
-                const Spacer(),
-                TextButton(
-                  onPressed: () => setState(() => _selectedColor = null),
-                  child: const Text('Remover'),
-                ),
-              ],
-            ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          child: FilledButton.icon(
+            onPressed: _isSaving ? null : _submit,
+            icon: _isSaving
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
+                  )
+                : const Icon(Icons.check_rounded, size: 20),
+            label: Text(_submitLabel),
           ),
-        // Preset colors
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _presetColors.map((color) {
-            final isSelected = _selectedColor == color;
-            return GestureDetector(
-              onTap: () => setState(() {
-                _selectedColor = isSelected ? null : color;
-              }),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Color(int.parse(color.replaceFirst('#', '0xFF'))),
-                  shape: BoxShape.circle,
-                  border: isSelected
-                      ? Border.all(color: Colors.black, width: 3)
-                      : null,
-                ),
-                child: isSelected
-                    ? const Icon(Icons.check, color: Colors.white, size: 20)
-                    : null,
-              ),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 16),
-        // Custom color button
-        OutlinedButton.icon(
-          onPressed: () => _showColorPickerDialog(),
-          icon: const Icon(Icons.color_lens),
-          label: const Text('Escolher cor personalizada'),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _showColorPickerDialog() async {
-    final color = await showDialog<Color>(
-      context: context,
-      builder: (context) => _ColorPickerDialog(),
-    );
-
-    if (color != null) {
-      final hexColor = '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
-      setState(() => _selectedColor = hexColor);
-    }
-  }
-}
-
-class _ColorPickerDialog extends StatefulWidget {
-  @override
-  State<_ColorPickerDialog> createState() => _ColorPickerDialogState();
-}
-
-class _ColorPickerDialogState extends State<_ColorPickerDialog> {
-  late Color _selectedColor;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedColor = Colors.blue;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Escolher cor'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: _selectedColor,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildColorSlider('Vermelho', (_selectedColor.r * 255).round().clamp(0, 255), (value) {
-              setState(() {
-                _selectedColor = Color.fromARGB(
-                  255,
-                  value.round(),
-                  (_selectedColor.g * 255).round().clamp(0, 255),
-                  (_selectedColor.b * 255).round().clamp(0, 255),
-                );
-              });
-            }),
-            _buildColorSlider('Verde', (_selectedColor.g * 255).round().clamp(0, 255), (value) {
-              setState(() {
-                _selectedColor = Color.fromARGB(
-                  255,
-                  (_selectedColor.r * 255).round().clamp(0, 255),
-                  value.round(),
-                  (_selectedColor.b * 255).round().clamp(0, 255),
-                );
-              });
-            }),
-            _buildColorSlider('Azul', (_selectedColor.b * 255).round().clamp(0, 255), (value) {
-              setState(() {
-                _selectedColor = Color.fromARGB(
-                  255,
-                  (_selectedColor.r * 255).round().clamp(0, 255),
-                  (_selectedColor.g * 255).round().clamp(0, 255),
-                  value.round(),
-                );
-              });
-            }),
-          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(_selectedColor),
-          child: const Text('Selecionar'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildColorSlider(String label, int value, ValueChanged<double> onChanged) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 60,
-          child: Text(label),
-        ),
-        Expanded(
-          child: Slider(
-            value: value.toDouble(),
-            min: 0,
-            max: 255,
-            onChanged: onChanged,
-          ),
-        ),
-        SizedBox(
-          width: 40,
-          child: Text(value.toString()),
-        ),
-      ],
     );
   }
 }

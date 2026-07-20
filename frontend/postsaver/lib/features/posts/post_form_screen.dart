@@ -1,8 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/folders_api.dart';
+import '../../core/api/metadata_api.dart';
 import '../../core/api/posts_api.dart';
 import '../../core/api/tags_api.dart';
 import '../../core/auth/auth_provider.dart';
@@ -11,6 +14,10 @@ import '../../core/models/folder.dart';
 import '../../core/models/post.dart';
 import '../../core/models/social_source.dart';
 import '../../core/models/tag.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/theme/source_style.dart';
+import '../../core/widgets/app_feedback.dart';
+import '../../core/widgets/skeleton.dart';
 import '../share/share_provider.dart';
 
 class PostFormScreen extends ConsumerStatefulWidget {
@@ -39,6 +46,7 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
   List<Tag> _tags = [];
   bool _isLoadingData = true;
   bool _isSaving = false;
+  bool _isFetchingMetadata = false;
   String? _errorMessage;
   bool _isInitialized = false;
 
@@ -48,7 +56,9 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
     if (widget.initialUrl != null) {
       _urlController.text = widget.initialUrl!;
       _source = inferSocialSource(widget.initialUrl!);
+      _fetchMetadata(silent: true);
     }
+    _thumbnailUrlController.addListener(() => setState(() {}));
     _loadData();
   }
 
@@ -65,9 +75,9 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
 
   bool get _isEditing => widget.postId != null;
 
-  String get _title => _isEditing ? 'Editar Post' : 'Criar Post';
+  String get _title => _isEditing ? 'Editar post' : 'Salvar post';
 
-  String get _submitLabel => _isEditing ? 'Salvar' : 'Criar';
+  String get _submitLabel => _isEditing ? 'Salvar alterações' : 'Salvar post';
 
   Future<void> _loadData() async {
     try {
@@ -107,6 +117,47 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
     }
   }
 
+  /// Busca título/descrição/thumbnail do link e preenche os campos vazios
+  /// (nunca sobrescreve o que o usuário já digitou).
+  Future<void> _fetchMetadata({bool silent = false}) async {
+    final url = _urlController.text.trim();
+    if (url.isEmpty || _isFetchingMetadata) return;
+
+    setState(() => _isFetchingMetadata = true);
+
+    try {
+      final metadata = await fetchUrlMetadata(dio: _dio, url: url);
+      if (!mounted) return;
+      setState(() {
+        if (_titleController.text.trim().isEmpty &&
+            (metadata.title ?? '').isNotEmpty) {
+          _titleController.text = metadata.title!;
+        }
+        if (_descriptionController.text.trim().isEmpty &&
+            (metadata.description ?? '').isNotEmpty) {
+          _descriptionController.text = metadata.description!;
+        }
+        if (_thumbnailUrlController.text.trim().isEmpty &&
+            (metadata.thumbnailUrl ?? '').isNotEmpty) {
+          _thumbnailUrlController.text = metadata.thumbnailUrl!;
+        }
+        if (metadata.source != SocialSource.other) {
+          _source = metadata.source;
+        }
+      });
+    } catch (_) {
+      if (!silent && mounted) {
+        showAppSnackBar(
+          context,
+          'Não foi possível buscar os dados do link',
+          isError: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isFetchingMetadata = false);
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -143,8 +194,9 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
       }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_isEditing ? 'Post atualizado' : 'Post criado com sucesso')),
+      showAppSnackBar(
+        context,
+        _isEditing ? 'Post atualizado' : 'Post salvo com sucesso',
       );
       Navigator.of(context).pop(post);
     } on ApiError catch (e) {
@@ -164,10 +216,12 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     if (_isLoadingData) {
       return Scaffold(
         appBar: AppBar(title: Text(_title)),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const SkeletonList(count: 5),
       );
     }
 
@@ -175,55 +229,94 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
       return Scaffold(
         appBar: AppBar(title: Text(_title)),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadData,
-                child: const Text('Tentar novamente'),
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.cloud_off_rounded,
+                  size: 44,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 20),
+                FilledButton.tonal(
+                  onPressed: _loadData,
+                  child: const Text('Tentar novamente'),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
+    final thumbnailUrl = _thumbnailUrlController.text.trim();
+    final hasThumbPreview = thumbnailUrl.isNotEmpty &&
+        (Uri.tryParse(thumbnailUrl)?.hasScheme ?? false);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_title),
-        actions: [
-          TextButton(
-            onPressed: _isSaving ? null : _submit,
-            child: _isSaving
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(_submitLabel),
-          ),
-        ],
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
           children: [
-            if (_errorMessage != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red),
+            if (_errorMessage != null) ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color:
+                      theme.colorScheme.errorContainer.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
                 ),
-              ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      color: theme.colorScheme.error,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: TextStyle(
+                          color: theme.colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate().shake(hz: 4, duration: 400.ms),
+              const SizedBox(height: 16),
+            ],
+            _SectionLabel(label: 'Rede social'),
+            const SizedBox(height: 10),
+            _SourceSelector(
+              selected: _source,
+              onSelect: (source) => setState(() => _source = source),
+            ),
+            const SizedBox(height: 24),
+            _SectionLabel(label: 'Informações'),
+            const SizedBox(height: 10),
             TextFormField(
               controller: _titleController,
               decoration: const InputDecoration(
                 labelText: 'Título *',
-                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.title_rounded),
               ),
               maxLength: 120,
               validator: (value) {
@@ -236,12 +329,26 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _urlController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'URL *',
-                border: OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.link_rounded),
+                suffixIcon: _isFetchingMetadata
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        ),
+                      )
+                    : IconButton(
+                        onPressed: _fetchMetadata,
+                        icon: const Icon(Icons.auto_fix_high_rounded),
+                        tooltip: 'Preencher dados do link',
+                      ),
               ),
               maxLength: 500,
               keyboardType: TextInputType.url,
@@ -259,31 +366,12 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<SocialSource>(
-              initialValue: _source,
-              decoration: const InputDecoration(
-                labelText: 'Fonte *',
-                border: OutlineInputBorder(),
-              ),
-              items: SocialSource.values.map((source) {
-                return DropdownMenuItem(
-                  value: source,
-                  child: Text(_sourceLabel(source)),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _source = value);
-                }
-              },
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _descriptionController,
               decoration: const InputDecoration(
                 labelText: 'Descrição',
-                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
               ),
               maxLength: 500,
               maxLines: 3,
@@ -294,12 +382,12 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _thumbnailUrlController,
               decoration: const InputDecoration(
-                labelText: 'URL da Thumbnail',
-                border: OutlineInputBorder(),
+                labelText: 'URL da thumbnail',
+                prefixIcon: Icon(Icons.image_outlined),
               ),
               maxLength: 500,
               keyboardType: TextInputType.url,
@@ -316,19 +404,56 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 16),
-            SwitchListTile(
-              title: const Text('Favorito'),
-              value: _favorite,
-              onChanged: (value) => setState(() => _favorite = value),
-            ),
-            const SizedBox(height: 16),
+            if (hasThumbPreview) ...[
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: CachedNetworkImage(
+                    imageUrl: thumbnailUrl,
+                    fit: BoxFit.cover,
+                    placeholder: (_, _) => const SkeletonBox(
+                      height: double.infinity,
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(AppTheme.radiusM),
+                      ),
+                    ),
+                    errorWidget: (_, _, _) => Container(
+                      color: theme.colorScheme.surfaceContainerHigh,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.broken_image_outlined,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Não foi possível carregar a imagem',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ).animate().fadeIn(duration: 300.ms),
+            ],
+            const SizedBox(height: 20),
+            _SectionLabel(label: 'Organização'),
+            const SizedBox(height: 10),
             DropdownButtonFormField<int>(
               initialValue: _folderId,
               decoration: const InputDecoration(
                 labelText: 'Pasta',
-                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.folder_outlined),
               ),
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
               items: [
                 const DropdownMenuItem<int>(
                   value: null,
@@ -337,29 +462,56 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
                 ..._folders.map((folder) {
                   return DropdownMenuItem(
                     value: folder.id,
-                    child: Text(folder.name),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.folder_rounded,
+                          size: 18,
+                          color: parseHexColor(folder.color),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(folder.name),
+                      ],
+                    ),
                   );
                 }),
               ],
               onChanged: (value) => setState(() => _folderId = value),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Tags',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            if (_tags.isEmpty)
-              const Text('Nenhuma tag disponível')
-            else
+            if (_tags.isNotEmpty) ...[
+              Text(
+                'Tags',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
-                runSpacing: 4,
+                runSpacing: 8,
                 children: _tags.map((tag) {
                   final isSelected = _selectedTagIds.contains(tag.id);
+                  final tagColor = parseHexColor(tag.color);
                   return FilterChip(
+                    avatar: isSelected
+                        ? Icon(Icons.check_rounded, size: 16, color: tagColor)
+                        : null,
                     label: Text(tag.name),
                     selected: isSelected,
+                    selectedColor: tagColor.withValues(alpha: 0.16),
+                    labelStyle: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? tagColor
+                          : theme.colorScheme.onSurface,
+                    ),
+                    side: BorderSide(
+                      color: isSelected
+                          ? tagColor.withValues(alpha: 0.5)
+                          : theme.colorScheme.outlineVariant,
+                    ),
                     onSelected: (selected) {
                       setState(() {
                         if (selected) {
@@ -372,28 +524,179 @@ class _PostFormScreenState extends ConsumerState<PostFormScreen> {
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 16),
+            ],
+            Card(
+              child: SwitchListTile(
+                secondary: Icon(
+                  _favorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  color: _favorite
+                      ? AppColors.favorite
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+                title: const Text(
+                  'Favorito',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text('Destacar entre os seus favoritos'),
+                value: _favorite,
+                onChanged: (value) => setState(() => _favorite = value),
+              ),
+            ),
           ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: AppColors.subtleBrandGradient,
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.brand.withValues(alpha: 0.35),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: FilledButton.icon(
+              onPressed: _isSaving ? null : _submit,
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                disabledBackgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: Colors.white,
+              ),
+              icon: _isSaving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.bookmark_added_rounded, size: 20),
+              label: Text(_submitLabel),
+            ),
+          ),
         ),
       ),
     );
   }
+}
 
-  String _sourceLabel(SocialSource source) {
-    switch (source) {
-      case SocialSource.instagram:
-        return 'Instagram';
-      case SocialSource.tiktok:
-        return 'TikTok';
-      case SocialSource.facebook:
-        return 'Facebook';
-      case SocialSource.kwai:
-        return 'Kwai';
-      case SocialSource.youtube:
-        return 'YouTube';
-      case SocialSource.twitter:
-        return 'Twitter';
-      case SocialSource.other:
-        return 'Outro';
-    }
+class _SectionLabel extends StatelessWidget {
+  final String label;
+
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      label.toUpperCase(),
+      style: theme.textTheme.labelSmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.2,
+      ),
+    );
+  }
+}
+
+/// Seletor visual de rede social em cards horizontais.
+class _SourceSelector extends StatelessWidget {
+  final SocialSource selected;
+  final ValueChanged<SocialSource> onSelect;
+
+  const _SourceSelector({required this.selected, required this.onSelect});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      height: 88,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: SocialSource.values.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final source = SocialSource.values[index];
+          final style = SourceStyle.of(source);
+          final isSelected = source == selected;
+
+          return GestureDetector(
+            onTap: () => onSelect(source),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              width: 84,
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                border: Border.all(
+                  color: isSelected
+                      ? style.color.withValues(alpha: 0.7)
+                      : scheme.outlineVariant,
+                  width: isSelected ? 2 : 1,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: style.color.withValues(alpha: 0.25),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AnimatedScale(
+                    scale: isSelected ? 1.1 : 1,
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutBack,
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        gradient: style.gradient,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        style.icon,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    style.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight:
+                          isSelected ? FontWeight.w800 : FontWeight.w600,
+                      color: isSelected
+                          ? scheme.onSurface
+                          : scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }

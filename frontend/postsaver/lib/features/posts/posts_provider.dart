@@ -13,13 +13,21 @@ class PostsFilter {
   final int? tagId;
   final bool? favorite;
 
+  /// Nomes exibidos no chip de filtro ativo (quando vindo de Pastas/Tags).
+  final String? folderName;
+  final String? tagName;
+
   const PostsFilter({
     this.q,
     this.source,
     this.folderId,
     this.tagId,
     this.favorite,
+    this.folderName,
+    this.tagName,
   });
+
+  bool get hasCollectionFilter => folderId != null || tagId != null;
 
   PostsFilter copyWith({
     String? q,
@@ -27,6 +35,8 @@ class PostsFilter {
     int? folderId,
     int? tagId,
     bool? favorite,
+    String? folderName,
+    String? tagName,
     bool clearQ = false,
     bool clearSource = false,
     bool clearFolder = false,
@@ -39,6 +49,8 @@ class PostsFilter {
       folderId: clearFolder ? null : (folderId ?? this.folderId),
       tagId: clearTag ? null : (tagId ?? this.tagId),
       favorite: clearFavorite ? null : (favorite ?? this.favorite),
+      folderName: clearFolder ? null : (folderName ?? this.folderName),
+      tagName: clearTag ? null : (tagName ?? this.tagName),
     );
   }
 }

@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/models/user.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/theme/theme_provider.dart';
+import '../../core/widgets/app_feedback.dart';
+import '../../core/widgets/state_views.dart';
 import 'profile_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -56,7 +61,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       name: _nameController.text,
       username: _usernameController.text,
       email: _emailController.text,
-      password: user.id.toString(),
     );
 
     final updatedUser =
@@ -65,63 +69,115 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       setState(() {
         _isEditing = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Perfil atualizado')),
-      );
+      showAppSnackBar(context, 'Perfil atualizado');
     }
   }
 
   Future<void> _logout() async {
-    await ref.read(authStateProvider.notifier).logout();
+    final confirmed = await showConfirmSheet(
+      context,
+      title: 'Sair da conta?',
+      message: 'Você precisará entrar novamente para acessar seus posts.',
+      confirmLabel: 'Sair',
+      icon: Icons.logout_rounded,
+    );
+    if (confirmed) {
+      await ref.read(authStateProvider.notifier).logout();
+    }
   }
 
   Future<void> _deleteAccount() async {
     final controller = TextEditingController();
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Excluir conta'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.',
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Digite EXCLUIR para confirmar',
-                border: OutlineInputBorder(),
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.error.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.delete_forever_rounded,
+                      size: 34,
+                      color: theme.colorScheme.error,
+                    ),
+                  ).animate().scale(
+                        duration: 350.ms,
+                        curve: Curves.easeOutBack,
+                        begin: const Offset(0.7, 0.7),
+                      ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Excluir conta?',
+                    style: theme.textTheme.titleLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Todos os seus posts, pastas e tags serão apagados para sempre. Essa ação não pode ser desfeita.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: controller,
+                    textCapitalization: TextCapitalization.characters,
+                    decoration: const InputDecoration(
+                      labelText: 'Digite EXCLUIR para confirmar',
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: () {
+                      final value = controller.text.trim().toUpperCase();
+                      Navigator.of(sheetContext).pop(value == 'EXCLUIR');
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: theme.colorScheme.error,
+                      foregroundColor: theme.colorScheme.onError,
+                    ),
+                    child: const Text('Excluir minha conta'),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(false),
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      foregroundColor: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    child: const Text('Cancelar'),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancelar'),
           ),
-          TextButton(
-            onPressed: () {
-              final value = controller.text.trim().toUpperCase();
-              Navigator.of(dialogContext).pop(value == 'EXCLUIR');
-            },
-            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+        );
+      },
     );
     controller.dispose();
 
     if (confirmed == true && mounted) {
-      final success =
-          await ref.read(profileProvider.notifier).deleteUser();
+      final success = await ref.read(profileProvider.notifier).deleteUser();
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Conta excluída')),
-        );
+        showAppSnackBar(context, 'Conta excluída');
         context.go('/login');
       }
     }
@@ -130,50 +186,55 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Perfil'),
-        actions: [
-          if (!_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: _toggleEdit,
-              tooltip: 'Editar perfil',
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child:
+                        Text('Perfil', style: theme.textTheme.headlineSmall),
+                  ),
+                  if (profileState.user != null)
+                    IconButton.outlined(
+                      style: IconButton.styleFrom(
+                        side: BorderSide(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
+                      ),
+                      icon: Icon(
+                        _isEditing ? Icons.close_rounded : Icons.edit_rounded,
+                        size: 20,
+                      ),
+                      onPressed: _toggleEdit,
+                      tooltip: _isEditing ? 'Cancelar edição' : 'Editar perfil',
+                    ),
+                ],
+              ),
             ),
-          if (_isEditing)
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: _toggleEdit,
-              tooltip: 'Cancelar edição',
-            ),
-        ],
+            Expanded(child: _buildContent(profileState)),
+          ],
+        ),
       ),
-      body: _buildContent(profileState),
     );
   }
 
   Widget _buildContent(ProfileState profileState) {
-    if (profileState.isLoading) {
+    if (profileState.isLoading && profileState.user == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
     if (profileState.error != null && profileState.user == null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 16),
-            Text('Erro: ${profileState.error}'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () =>
-                  ref.read(profileProvider.notifier).loadUser(),
-              child: const Text('Tentar novamente'),
-            ),
-          ],
-        ),
+      return ErrorState(
+        message: profileState.error!,
+        onRetry: () => ref.read(profileProvider.notifier).loadUser(),
       );
     }
 
@@ -182,172 +243,348 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final theme = Theme.of(context);
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Header com avatar em gradiente
             Center(
-              child: CircleAvatar(
-                radius: 48,
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                child: Text(
-                  user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                  style: const TextStyle(
-                    fontSize: 32,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (_isEditing) ...[
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Nome é obrigatório';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome de usuário',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Nome de usuário é obrigatório';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'E-mail',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'E-mail é obrigatório';
-                  }
-                  if (!value.contains('@')) {
-                    return 'E-mail inválido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: profileState.isLoading ? null : _saveProfile,
-                  child: profileState.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Salvar'),
-                ),
-              ),
-            ] else ...[
-              _buildInfoTile(
-                icon: Icons.person,
-                title: 'Nome',
-                value: user.name,
-              ),
-              _buildInfoTile(
-                icon: Icons.alternate_email,
-                title: 'Nome de usuário',
-                value: user.username,
-              ),
-              _buildInfoTile(
-                icon: Icons.email,
-                title: 'E-mail',
-                value: user.email,
-              ),
-            ],
-            if (profileState.error != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.red),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        profileState.error!,
-                        style: const TextStyle(color: Colors.red),
+              child: Column(
+                children: [
+                  Container(
+                    width: 92,
+                    height: 92,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.brandGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.brand.withValues(alpha: 0.35),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
                       ),
                     ),
-                  ],
-                ),
+                  ).animate().scale(
+                        duration: 450.ms,
+                        curve: Curves.easeOutBack,
+                        begin: const Offset(0.7, 0.7),
+                      ),
+                  const SizedBox(height: 14),
+                  Text(user.name, style: theme.textTheme.titleLarge),
+                  const SizedBox(height: 2),
+                  Text(
+                    '@${user.username}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
+            ),
+            const SizedBox(height: 28),
+            if (_isEditing)
+              _buildEditForm(profileState)
+            else ...[
+              _buildInfoCard(user),
+              const SizedBox(height: 20),
+              _buildAppearanceCard(),
+              const SizedBox(height: 20),
+              _buildAccountActions(),
             ],
-            const SizedBox(height: 32),
-            const Divider(),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _logout,
-                icon: const Icon(Icons.logout),
-                label: const Text('Sair da conta'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.orange,
-                  side: const BorderSide(color: Colors.orange),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _deleteAccount,
-                icon: const Icon(Icons.delete_forever),
-                label: const Text('Excluir conta'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red),
-                ),
-              ),
-            ),
+            if (profileState.error != null && !_isEditing) ...[
+              const SizedBox(height: 16),
+              _ErrorBanner(message: profileState.error!),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoTile({
-    required IconData icon,
-    required String title,
-    required String value,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: Icon(icon, color: Colors.grey[600]),
-        title: Text(title, style: TextStyle(color: Colors.grey[600])),
-        subtitle: Text(value, style: const TextStyle(fontSize: 16)),
-        contentPadding: EdgeInsets.zero,
+  Widget _buildInfoCard(User user) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        child: Column(
+          children: [
+            _InfoTile(
+              icon: Icons.badge_outlined,
+              title: 'Nome',
+              value: user.name,
+            ),
+            const Divider(indent: 56),
+            _InfoTile(
+              icon: Icons.alternate_email_rounded,
+              title: 'Usuário',
+              value: user.username,
+            ),
+            const Divider(indent: 56),
+            _InfoTile(
+              icon: Icons.mail_outline_rounded,
+              title: 'E-mail',
+              value: user.email,
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 100.ms, duration: 400.ms).moveY(
+          begin: 16,
+          end: 0,
+          delay: 100.ms,
+          duration: 400.ms,
+          curve: Curves.easeOutCubic,
+        );
+  }
+
+  Widget _buildAppearanceCard() {
+    final themeMode = ref.watch(themeModeProvider);
+    final theme = Theme.of(context);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.palette_outlined,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 10),
+                Text('Aparência', style: theme.textTheme.titleMedium),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SegmentedButton<ThemeMode>(
+              segments: const [
+                ButtonSegment(
+                  value: ThemeMode.system,
+                  label: Text('Sistema'),
+                  icon: Icon(Icons.brightness_auto_rounded, size: 18),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.light,
+                  label: Text('Claro'),
+                  icon: Icon(Icons.light_mode_rounded, size: 18),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.dark,
+                  label: Text('Escuro'),
+                  icon: Icon(Icons.dark_mode_rounded, size: 18),
+                ),
+              ],
+              selected: {themeMode},
+              onSelectionChanged: (selection) {
+                ref.read(themeModeProvider.notifier).setMode(selection.first);
+              },
+              style: SegmentedButton.styleFrom(
+                selectedBackgroundColor:
+                    theme.colorScheme.primary.withValues(alpha: 0.14),
+                selectedForegroundColor: theme.colorScheme.primary,
+                side: BorderSide(color: theme.colorScheme.outlineVariant),
+              ),
+              showSelectedIcon: false,
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(delay: 180.ms, duration: 400.ms).moveY(
+          begin: 16,
+          end: 0,
+          delay: 180.ms,
+          duration: 400.ms,
+          curve: Curves.easeOutCubic,
+        );
+  }
+
+  Widget _buildAccountActions() {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OutlinedButton.icon(
+          onPressed: _logout,
+          icon: const Icon(Icons.logout_rounded, size: 20),
+          label: const Text('Sair da conta'),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: _deleteAccount,
+          icon: const Icon(Icons.delete_forever_rounded, size: 20),
+          label: const Text('Excluir conta'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: theme.colorScheme.error,
+            side: BorderSide(
+              color: theme.colorScheme.error.withValues(alpha: 0.4),
+            ),
+          ),
+        ),
+      ],
+    ).animate().fadeIn(delay: 260.ms, duration: 400.ms).moveY(
+          begin: 16,
+          end: 0,
+          delay: 260.ms,
+          duration: 400.ms,
+          curve: Curves.easeOutCubic,
+        );
+  }
+
+  Widget _buildEditForm(ProfileState profileState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextFormField(
+          controller: _nameController,
+          decoration: const InputDecoration(
+            labelText: 'Nome',
+            prefixIcon: Icon(Icons.badge_outlined),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Nome é obrigatório';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _usernameController,
+          decoration: const InputDecoration(
+            labelText: 'Nome de usuário',
+            prefixIcon: Icon(Icons.alternate_email_rounded),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Nome de usuário é obrigatório';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _emailController,
+          decoration: const InputDecoration(
+            labelText: 'E-mail',
+            prefixIcon: Icon(Icons.mail_outline_rounded),
+          ),
+          keyboardType: TextInputType.emailAddress,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'E-mail é obrigatório';
+            }
+            if (!value.contains('@')) {
+              return 'E-mail inválido';
+            }
+            return null;
+          },
+        ),
+        if (profileState.error != null) ...[
+          const SizedBox(height: 16),
+          _ErrorBanner(message: profileState.error!),
+        ],
+        const SizedBox(height: 24),
+        FilledButton.icon(
+          onPressed: profileState.isLoading ? null : _saveProfile,
+          icon: profileState.isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                )
+              : const Icon(Icons.check_rounded, size: 20),
+          label: const Text('Salvar alterações'),
+        ),
+      ],
+    ).animate().fadeIn(duration: 300.ms);
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+
+  const _InfoTile({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListTile(
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, size: 20, color: theme.colorScheme.primary),
+      ),
+      title: Text(
+        title,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+      subtitle: Text(
+        value,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  final String message;
+
+  const _ErrorBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline_rounded, color: theme.colorScheme.error),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: theme.colorScheme.onErrorContainer,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

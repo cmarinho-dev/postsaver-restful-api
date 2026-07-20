@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api/user_api.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/models/api_error.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_feedback.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -19,6 +22,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
   String? _errorMessage;
 
   @override
@@ -48,9 +52,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful!')),
-        );
+        showAppSnackBar(context, 'Conta criada! Agora é só entrar.');
         Navigator.of(context).pop();
       }
     } on ApiError catch (e) {
@@ -59,7 +61,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'An unexpected error occurred. Please try again.';
+        _errorMessage = 'Erro inesperado. Tente novamente.';
       });
     } finally {
       if (mounted) {
@@ -72,29 +74,68 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Criar conta')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: SafeArea(
         child: Form(
           key: _formKey,
           child: ListView(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
             children: [
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Text(
-                    _errorMessage!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
+              Text('Criar conta', style: theme.textTheme.headlineMedium)
+                  .animate()
+                  .fadeIn(duration: 400.ms)
+                  .moveY(begin: 12, end: 0, curve: Curves.easeOutCubic),
+              const SizedBox(height: 8),
+              Text(
+                'Leva menos de um minuto — e seus posts nunca mais se perdem.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
+              ).animate().fadeIn(delay: 80.ms, duration: 400.ms),
+              const SizedBox(height: 28),
+              if (_errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer
+                        .withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(
+                            color: theme.colorScheme.onErrorContainer,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ).animate().shake(hz: 4, duration: 400.ms),
+                const SizedBox(height: 16),
+              ],
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'Nome',
-                  hintText: 'Digite seu nome completo',
+                  hintText: 'Seu nome completo',
+                  prefixIcon: Icon(Icons.badge_outlined),
                 ),
                 textCapitalization: TextCapitalization.words,
                 validator: (value) {
@@ -106,13 +147,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   }
                   return null;
                 },
-              ),
+              ).animate().fadeIn(delay: 150.ms, duration: 400.ms).moveY(
+                    begin: 12,
+                    end: 0,
+                    delay: 150.ms,
+                    curve: Curves.easeOutCubic,
+                  ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _usernameController,
                 decoration: const InputDecoration(
                   labelText: 'Usuário',
                   hintText: 'Escolha um nome de usuário',
+                  prefixIcon: Icon(Icons.alternate_email_rounded),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -123,13 +170,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   }
                   return null;
                 },
-              ),
+              ).animate().fadeIn(delay: 220.ms, duration: 400.ms).moveY(
+                    begin: 12,
+                    end: 0,
+                    delay: 220.ms,
+                    curve: Curves.easeOutCubic,
+                  ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(
                   labelText: 'E-mail',
-                  hintText: 'Digite seu endereço de e-mail',
+                  hintText: 'voce@exemplo.com',
+                  prefixIcon: Icon(Icons.mail_outline_rounded),
                 ),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
@@ -145,15 +198,31 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   }
                   return null;
                 },
-              ),
+              ).animate().fadeIn(delay: 290.ms, duration: 400.ms).moveY(
+                    begin: 12,
+                    end: 0,
+                    delay: 290.ms,
+                    curve: Curves.easeOutCubic,
+                  ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Senha',
-                  hintText: 'Crie uma senha',
+                  hintText: 'Mínimo de 6 caracteres',
+                  prefixIcon: const Icon(Icons.lock_outline_rounded),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                    onPressed: () => setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    }),
+                  ),
                 ),
-                obscureText: true,
+                obscureText: _obscurePassword,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Por favor, insira uma senha';
@@ -166,25 +235,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   }
                   return null;
                 },
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
+              ).animate().fadeIn(delay: 360.ms, duration: 400.ms).moveY(
+                    begin: 12,
+                    end: 0,
+                    delay: 360.ms,
+                    curve: Curves.easeOutCubic,
+                  ),
+              const SizedBox(height: 28),
+              FilledButton(
                 onPressed: _isLoading ? null : _register,
                 child: _isLoading
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
                       )
-                    : const Text('Cadastrar'),
-              ),
-              const SizedBox(height: 16),
+                    : const Text('Criar conta'),
+              ).animate().fadeIn(delay: 430.ms, duration: 400.ms).moveY(
+                    begin: 12,
+                    end: 0,
+                    delay: 430.ms,
+                    curve: Curves.easeOutCubic,
+                  ),
+              const SizedBox(height: 12),
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
                 child: const Text('Já tem conta? Entrar'),
-              ),
+              ).animate().fadeIn(delay: 500.ms, duration: 400.ms),
             ],
           ),
         ),
