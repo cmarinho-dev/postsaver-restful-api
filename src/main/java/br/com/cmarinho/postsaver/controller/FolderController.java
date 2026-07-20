@@ -39,7 +39,7 @@ public class FolderController {
             @ApiResponse(responseCode = "200", description = "Operation successful"),
             @ApiResponse(responseCode = "404", description = "Folder not found")
     })
-    public ResponseEntity<FolderResponse> findById(@PathVariable Long id) {
+    public ResponseEntity<FolderResponse> findById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(FolderResponse.from(folderService.findById(id)));
     }
 
@@ -65,7 +65,7 @@ public class FolderController {
             @ApiResponse(responseCode = "404", description = "Folder not found"),
             @ApiResponse(responseCode = "422", description = "Invalid folder data provided")
     })
-    public ResponseEntity<FolderResponse> update(@PathVariable Long id, @Valid @RequestBody FolderRequest request) {
+    public ResponseEntity<FolderResponse> update(@PathVariable("id") Long id, @Valid @RequestBody FolderRequest request) {
         return ResponseEntity.ok(FolderResponse.from(folderService.update(id, request)));
     }
 
@@ -76,7 +76,7 @@ public class FolderController {
             @ApiResponse(responseCode = "404", description = "Folder not found"),
             @ApiResponse(responseCode = "422", description = "Folder still contains posts")
     })
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         folderService.delete(id);
         return ResponseEntity.noContent().build();
     }

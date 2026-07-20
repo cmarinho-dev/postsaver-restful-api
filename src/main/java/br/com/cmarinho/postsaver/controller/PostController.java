@@ -35,11 +35,11 @@ public class PostController {
     @Operation(summary = "Search posts", description = "Search saved posts with optional filters and pagination")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Operation successful"))
     public ResponseEntity<Page<PostResponse>> search(
-            @RequestParam(required = false) String q,
-            @RequestParam(required = false) SocialSource source,
-            @RequestParam(required = false) Long folderId,
-            @RequestParam(required = false) Long tagId,
-            @RequestParam(required = false) Boolean favorite,
+            @RequestParam(name = "q", required = false) String q,
+            @RequestParam(name = "source", required = false) SocialSource source,
+            @RequestParam(name = "folderId", required = false) Long folderId,
+            @RequestParam(name = "tagId", required = false) Long tagId,
+            @RequestParam(name = "favorite", required = false) Boolean favorite,
             @ParameterObject @PageableDefault(size = 12, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         var page = postService.search(q, source, folderId, tagId, favorite, pageable);
         return ResponseEntity.ok(page.map(PostResponse::from));
@@ -51,7 +51,7 @@ public class PostController {
             @ApiResponse(responseCode = "200", description = "Operation successful"),
             @ApiResponse(responseCode = "404", description = "Post not found")
     })
-    public ResponseEntity<PostResponse> findById(@PathVariable Long id) {
+    public ResponseEntity<PostResponse> findById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(PostResponse.from(postService.findById(id)));
     }
 
@@ -77,7 +77,7 @@ public class PostController {
             @ApiResponse(responseCode = "404", description = "Post not found"),
             @ApiResponse(responseCode = "422", description = "Invalid post data provided")
     })
-    public ResponseEntity<PostResponse> update(@PathVariable Long id, @Valid @RequestBody PostRequest request) {
+    public ResponseEntity<PostResponse> update(@PathVariable("id") Long id, @Valid @RequestBody PostRequest request) {
         return ResponseEntity.ok(PostResponse.from(postService.update(id, request)));
     }
 
@@ -87,7 +87,7 @@ public class PostController {
             @ApiResponse(responseCode = "200", description = "Favorite toggled successfully"),
             @ApiResponse(responseCode = "404", description = "Post not found")
     })
-    public ResponseEntity<PostResponse> toggleFavorite(@PathVariable Long id) {
+    public ResponseEntity<PostResponse> toggleFavorite(@PathVariable("id") Long id) {
         return ResponseEntity.ok(PostResponse.from(postService.toggleFavorite(id)));
     }
 
@@ -97,7 +97,7 @@ public class PostController {
             @ApiResponse(responseCode = "204", description = "Post deleted successfully"),
             @ApiResponse(responseCode = "404", description = "Post not found")
     })
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         postService.delete(id);
         return ResponseEntity.noContent().build();
     }

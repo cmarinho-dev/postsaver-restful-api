@@ -39,7 +39,7 @@ public class TagController {
             @ApiResponse(responseCode = "200", description = "Operation successful"),
             @ApiResponse(responseCode = "404", description = "Tag not found")
     })
-    public ResponseEntity<TagResponse> findById(@PathVariable Long id) {
+    public ResponseEntity<TagResponse> findById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(TagResponse.from(tagService.findById(id)));
     }
 
@@ -65,7 +65,7 @@ public class TagController {
             @ApiResponse(responseCode = "404", description = "Tag not found"),
             @ApiResponse(responseCode = "422", description = "Invalid tag data provided")
     })
-    public ResponseEntity<TagResponse> update(@PathVariable Long id, @Valid @RequestBody TagRequest request) {
+    public ResponseEntity<TagResponse> update(@PathVariable("id") Long id, @Valid @RequestBody TagRequest request) {
         return ResponseEntity.ok(TagResponse.from(tagService.update(id, request)));
     }
 
@@ -75,7 +75,7 @@ public class TagController {
             @ApiResponse(responseCode = "204", description = "Tag deleted successfully"),
             @ApiResponse(responseCode = "404", description = "Tag not found")
     })
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         tagService.delete(id);
         return ResponseEntity.noContent().build();
     }
