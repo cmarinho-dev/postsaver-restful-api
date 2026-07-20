@@ -1,40 +1,20 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../core/models/social_source.dart';
 
-class SharedUrlState {
-  final String? sharedUrl;
-  final bool isProcessing;
-
-  const SharedUrlState({this.sharedUrl, this.isProcessing = false});
-
-  SharedUrlState copyWith({String? sharedUrl, bool? isProcessing, bool clearUrl = false}) {
-    return SharedUrlState(
-      sharedUrl: clearUrl ? null : (sharedUrl ?? this.sharedUrl),
-      isProcessing: isProcessing ?? this.isProcessing,
-    );
+/// Extrai a primeira URL de um texto compartilhado (apps costumam mandar
+/// legenda + link juntos no ACTION_SEND).
+String? extractSharedUrl(String text) {
+  final urlPattern = RegExp(r'https?://[^\s]+', caseSensitive: false);
+  final match = urlPattern.firstMatch(text);
+  if (match != null) {
+    return match.group(0);
   }
+
+  if (text.contains('.') && !text.contains(' ')) {
+    return 'https://$text';
+  }
+
+  return null;
 }
-
-class SharedUrlNotifier extends StateNotifier<SharedUrlState> {
-  SharedUrlNotifier() : super(const SharedUrlState());
-
-  void setUrl(String url) {
-    state = state.copyWith(sharedUrl: url);
-  }
-
-  void clearUrl() {
-    state = state.copyWith(clearUrl: true);
-  }
-
-  void setProcessing(bool processing) {
-    state = state.copyWith(isProcessing: processing);
-  }
-}
-
-final sharedUrlProvider = StateNotifierProvider<SharedUrlNotifier, SharedUrlState>((ref) {
-  return SharedUrlNotifier();
-});
 
 SocialSource inferSocialSource(String url) {
   final uri = Uri.tryParse(url);
@@ -46,8 +26,12 @@ SocialSource inferSocialSource(String url) {
   if (host.contains('tiktok.com')) return SocialSource.tiktok;
   if (host.contains('facebook.com')) return SocialSource.facebook;
   if (host.contains('kwai.com')) return SocialSource.kwai;
-  if (host.contains('youtube.com')) return SocialSource.youtube;
-  if (host.contains('twitter.com') || host.contains('x.com')) return SocialSource.twitter;
+  if (host.contains('youtube.com') || host.contains('youtu.be')) {
+    return SocialSource.youtube;
+  }
+  if (host.contains('twitter.com') || host == 'x.com') {
+    return SocialSource.twitter;
+  }
 
   return SocialSource.other;
 }

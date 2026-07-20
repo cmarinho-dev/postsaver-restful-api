@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "br.com.cmarinho.postsaver"
-    compileSdk = flutter.compileSdkVersion
+    // receive_sharing_intent 1.9.0 exige compileSdk >= 37
+    compileSdk = maxOf(flutter.compileSdkVersion, 37)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -16,7 +17,7 @@ android {
 
     defaultConfig {
         applicationId = "br.com.cmarinho.postsaver"
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

@@ -30,9 +30,6 @@ dependencies:
   # Navigation
   go_router: ^14.8.1
 
-  # Share intent handling
-  receive_sharing_intent: ^1.8.0
-
   cupertino_icons: ^1.0.8
   google_fonts: ^8.1.0
   flutter_animate: ^4.5.2
