@@ -26,7 +26,7 @@ _$UserRequestImpl _$$UserRequestImplFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       username: json['username'] as String,
       email: json['email'] as String,
-      password: json['password'] as String,
+      password: json['password'] as String?,
     );
 
 Map<String, dynamic> _$$UserRequestImplToJson(_$UserRequestImpl instance) =>
@@ -34,5 +34,5 @@ Map<String, dynamic> _$$UserRequestImplToJson(_$UserRequestImpl instance) =>
       'name': instance.name,
       'username': instance.username,
       'email': instance.email,
-      'password': instance.password,
+      if (instance.password case final value?) 'password': value,
     };

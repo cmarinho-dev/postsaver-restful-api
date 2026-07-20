@@ -230,8 +230,10 @@ UserRequest _$UserRequestFromJson(Map<String, dynamic> json) {
 mixin _$UserRequest {
   String get name => throw _privateConstructorUsedError;
   String get username => throw _privateConstructorUsedError;
-  String get email => throw _privateConstructorUsedError;
-  String get password => throw _privateConstructorUsedError;
+  String get email =>
+      throw _privateConstructorUsedError; // Opcional no PUT /users/me: quando omitida, o backend mantém a senha.
+  @JsonKey(includeIfNull: false)
+  String? get password => throw _privateConstructorUsedError;
 
   /// Serializes this UserRequest to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -250,7 +252,12 @@ abstract class $UserRequestCopyWith<$Res> {
     $Res Function(UserRequest) then,
   ) = _$UserRequestCopyWithImpl<$Res, UserRequest>;
   @useResult
-  $Res call({String name, String username, String email, String password});
+  $Res call({
+    String name,
+    String username,
+    String email,
+    @JsonKey(includeIfNull: false) String? password,
+  });
 }
 
 /// @nodoc
@@ -271,7 +278,7 @@ class _$UserRequestCopyWithImpl<$Res, $Val extends UserRequest>
     Object? name = null,
     Object? username = null,
     Object? email = null,
-    Object? password = null,
+    Object? password = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -287,10 +294,10 @@ class _$UserRequestCopyWithImpl<$Res, $Val extends UserRequest>
                 ? _value.email
                 : email // ignore: cast_nullable_to_non_nullable
                       as String,
-            password: null == password
+            password: freezed == password
                 ? _value.password
                 : password // ignore: cast_nullable_to_non_nullable
-                      as String,
+                      as String?,
           )
           as $Val,
     );
@@ -306,7 +313,12 @@ abstract class _$$UserRequestImplCopyWith<$Res>
   ) = __$$UserRequestImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String name, String username, String email, String password});
+  $Res call({
+    String name,
+    String username,
+    String email,
+    @JsonKey(includeIfNull: false) String? password,
+  });
 }
 
 /// @nodoc
@@ -326,7 +338,7 @@ class __$$UserRequestImplCopyWithImpl<$Res>
     Object? name = null,
     Object? username = null,
     Object? email = null,
-    Object? password = null,
+    Object? password = freezed,
   }) {
     return _then(
       _$UserRequestImpl(
@@ -342,10 +354,10 @@ class __$$UserRequestImplCopyWithImpl<$Res>
             ? _value.email
             : email // ignore: cast_nullable_to_non_nullable
                   as String,
-        password: null == password
+        password: freezed == password
             ? _value.password
             : password // ignore: cast_nullable_to_non_nullable
-                  as String,
+                  as String?,
       ),
     );
   }
@@ -358,7 +370,7 @@ class _$UserRequestImpl implements _UserRequest {
     required this.name,
     required this.username,
     required this.email,
-    required this.password,
+    @JsonKey(includeIfNull: false) this.password,
   });
 
   factory _$UserRequestImpl.fromJson(Map<String, dynamic> json) =>
@@ -370,8 +382,10 @@ class _$UserRequestImpl implements _UserRequest {
   final String username;
   @override
   final String email;
+  // Opcional no PUT /users/me: quando omitida, o backend mantém a senha.
   @override
-  final String password;
+  @JsonKey(includeIfNull: false)
+  final String? password;
 
   @override
   String toString() {
@@ -414,7 +428,7 @@ abstract class _UserRequest implements UserRequest {
     required final String name,
     required final String username,
     required final String email,
-    required final String password,
+    @JsonKey(includeIfNull: false) final String? password,
   }) = _$UserRequestImpl;
 
   factory _UserRequest.fromJson(Map<String, dynamic> json) =
@@ -425,9 +439,10 @@ abstract class _UserRequest implements UserRequest {
   @override
   String get username;
   @override
-  String get email;
+  String get email; // Opcional no PUT /users/me: quando omitida, o backend mantém a senha.
   @override
-  String get password;
+  @JsonKey(includeIfNull: false)
+  String? get password;
 
   /// Create a copy of UserRequest
   /// with the given fields replaced by the non-null parameter values.

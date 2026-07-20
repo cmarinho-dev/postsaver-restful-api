@@ -1,6 +1,7 @@
 package br.com.cmarinho.postsaver.service.impl;
 
 import br.com.cmarinho.postsaver.controller.dto.request.UserRequest;
+import br.com.cmarinho.postsaver.controller.dto.request.UserUpdateRequest;
 import br.com.cmarinho.postsaver.domain.model.User;
 import br.com.cmarinho.postsaver.domain.repository.UserRepository;
 import br.com.cmarinho.postsaver.service.UserService;
@@ -44,7 +45,7 @@ public class UserServiceImp implements UserService {
 
     @Override
     @Transactional
-    public User update(Long id, UserRequest request) {
+    public User update(Long id, UserUpdateRequest request) {
         User user = findById(id);
         if (!user.getUsername().equalsIgnoreCase(request.username())
                 && repository.existsByUsernameIgnoreCase(request.username())) {
@@ -53,7 +54,9 @@ public class UserServiceImp implements UserService {
         user.setName(request.name());
         user.setUsername(request.username());
         user.setEmail(request.email());
-        user.setPassword(passwordEncoder.encode(request.password()));
+        if (request.hasPassword()) {
+            user.setPassword(passwordEncoder.encode(request.password()));
+        }
         return repository.save(user);
     }
 

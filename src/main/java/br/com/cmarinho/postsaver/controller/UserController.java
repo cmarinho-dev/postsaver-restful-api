@@ -1,6 +1,7 @@
 package br.com.cmarinho.postsaver.controller;
 
 import br.com.cmarinho.postsaver.controller.dto.request.UserRequest;
+import br.com.cmarinho.postsaver.controller.dto.request.UserUpdateRequest;
 import br.com.cmarinho.postsaver.controller.dto.response.UserResponse;
 import br.com.cmarinho.postsaver.security.CurrentUserProvider;
 import br.com.cmarinho.postsaver.service.UserService;
@@ -51,12 +52,13 @@ public class UserController {
     }
 
     @PutMapping("/me")
-    @Operation(summary = "Update the authenticated user")
+    @Operation(summary = "Update the authenticated user",
+            description = "Password is optional; when omitted the current password is kept")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "User updated successfully"),
             @ApiResponse(responseCode = "422", description = "Invalid user data provided")
     })
-    public ResponseEntity<UserResponse> updateMe(@Valid @RequestBody UserRequest request) {
+    public ResponseEntity<UserResponse> updateMe(@Valid @RequestBody UserUpdateRequest request) {
         return ResponseEntity.ok(UserResponse.from(userService.update(currentUserProvider.getUserId(), request)));
     }
 

@@ -21,7 +21,9 @@ class UserRequest with _$UserRequest {
     required String name,
     required String username,
     required String email,
-    required String password,
+    // Opcional no PUT /users/me: quando omitida, o backend mantém a senha.
+    // ignore: invalid_annotation_target
+    @JsonKey(includeIfNull: false) String? password,
   }) = _UserRequest;
 
   factory UserRequest.fromJson(Map<String, dynamic> json) =>
