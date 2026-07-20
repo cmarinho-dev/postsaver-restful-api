@@ -35,3 +35,10 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Local secrets ###
+jwk.p12
+*.p12
+
+### Local tooling ###
+.mimocode/
