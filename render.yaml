@@ -24,6 +24,8 @@ services:
         value: postsaver-jwk
       - key: APP_JWK_KEYSTORE_PASSWORD
         sync: false
+      - key: APP_JWK_KEYSTORE_BASE64
+        sync: false
       - key: PGHOST
         sync: false
       - key: PGDATABASE

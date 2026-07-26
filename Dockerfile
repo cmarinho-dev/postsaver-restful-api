@@ -12,9 +12,11 @@ FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 COPY --from=build /app/build/libs/app.jar app.jar
+COPY docker-entrypoint.sh docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh
 
 # Free tier do Render tem 512 MB de RAM; limita o heap proporcionalmente.
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0"
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["./docker-entrypoint.sh"]

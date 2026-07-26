@@ -37,10 +37,23 @@ keytool -genkeypair -alias postsaver-jwk -keyalg RSA -keysize 2048 \
    | `PGPASSWORD` | senha do Neon |
    | `APP_JWK_KEYSTORE_PASSWORD` | a senha usada no `keytool` acima |
 
-3. Após criar o serviço: **Environment → Secret Files → Add Secret File**,
-   nome `jwk.p12`, conteúdo = upload do arquivo gerado no passo 2.
-   Ele fica disponível em `/etc/secrets/jwk.p12` (já apontado pelo
-   `APP_JWK_KEYSTORE_LOCATION` no blueprint).
+3. Após criar o serviço, você tem duas opções para fornecer o keystore:
+
+   - Preferível: **Environment → Secret Files → Add Secret File**,
+     nome `jwk.p12`, conteúdo = upload do arquivo gerado no passo 2.
+     Ele fica disponível em `/etc/secrets/jwk.p12` (já apontado pelo
+     `APP_JWK_KEYSTORE_LOCATION` no blueprint).
+
+   - Alternativa: se o painel do Render não aceitar upload binário, use um
+     secret env var Base64. No Windows PowerShell:
+
+     ```powershell
+     [Convert]::ToBase64String([IO.File]::ReadAllBytes('.\jwk.p12'))
+     ```
+
+     No Render, adicione a variável `APP_JWK_KEYSTORE_BASE64` com esse valor.
+     O container irá decodificá-lo em `/etc/secrets/jwk.p12` antes de iniciar.
+
 4. Se escolher outro nome de serviço que não `postsaver-api`, ajuste
    `APP_OAUTH_ISSUER` no Render **e** `_prodIssuer` em
    `frontend/postsaver/lib/core/config/environment.dart` para a URL real.
