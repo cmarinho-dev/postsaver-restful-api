@@ -6,7 +6,7 @@
 
 ![Java](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3-6DB33F?logo=springboot&logoColor=white)
-![Angular](https://img.shields.io/badge/Angular-19-DD0031?logo=angular&logoColor=white)
+![Flutter](https://img.shields.io/badge/Flutter-App-02569B?logo=flutter&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-prod-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 
@@ -28,7 +28,7 @@
 **PostSaver** é uma aplicação para salvar e organizar posts de redes sociais — Instagram, TikTok, Facebook, Kwai, YouTube e outras — em pastas, com tags/categorias e favoritos. O projeto é dividido em duas partes:
 
 - **Backend**: API RESTful em **Java 17 + Spring Boot 3** (JPA, Bean Validation, Springdoc/Swagger);
-- **Frontend**: aplicação em **Angular 19 + PrimeNG**, na pasta [`frontend/`](frontend).
+- **Frontend**: app **Flutter** (Dart), o cliente principal do projeto, na pasta [`frontend/`](frontend).
 
 # Funcionalidades
 
@@ -70,7 +70,7 @@ PGUSER=postgres
 PGPASSWORD=senha
 ```
 
-A variável opcional `APP_CORS_ALLOWED_ORIGINS` define as origens permitidas para CORS (padrão: `http://localhost:4200`).
+A variável opcional `APP_CORS_ALLOWED_ORIGINS` define as origens permitidas para CORS — ajuste conforme o ambiente do cliente Flutter (ex: build web local, emulador, etc.).
 
 # Principais Endpoints
 
@@ -87,16 +87,22 @@ A variável opcional `APP_CORS_ALLOWED_ORIGINS` define as origens permitidas par
 
 # Frontend
 
+O cliente principal do PostSaver é um app **Flutter**, na pasta [`frontend/`](frontend).
+
 ```sh
 cd frontend
-npm install
-npm start   # http://localhost:4200 (proxy /api -> localhost:8080)
+flutter pub get
+flutter run
 ```
 
-Build de produção:
+Configure a URL base da API (ex: `http://localhost:8080/api/v1`) de acordo com o ambiente onde o backend estiver rodando.
+
+Build de produção (exemplos):
 
 ```sh
-npm run build
+flutter build apk      # Android
+flutter build ios      # iOS
+flutter build web      # Web
 ```
 
 # Deploy
@@ -111,7 +117,7 @@ O repositório já inclui os artefatos necessários para deploy em containers/Pa
 
 ```
 postsaver-restful-api/
-├── frontend/               # Aplicação Angular 19 + PrimeNG
+├── frontend/               # App Flutter (Dart) — cliente principal
 ├── src/                    # Código-fonte do backend (Spring Boot)
 ├── gradle/wrapper/          # Gradle Wrapper
 ├── build.gradle.kts        # Configuração do build (Gradle Kotlin DSL)
